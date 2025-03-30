@@ -35,13 +35,13 @@ impl Term {
         let term = sqlx::query_as!(
             Term,
             r#"
-            SELECT id, title, description, first_letter, created
+            SELECT id as "id: u32", title, description, first_letter, created
             FROM Term 
             WHERE id = ?
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(term)
@@ -51,12 +51,12 @@ impl Term {
         let terms = sqlx::query_as!(
             Term,
             r#"
-            SELECT id, title, description, first_letter, created
+            SELECT id as "id: u32", title, description, first_letter, created
             FROM Term 
             ORDER BY title
             "#
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         Ok(terms)
@@ -66,14 +66,14 @@ impl Term {
         let terms = sqlx::query_as!(
             Term,
             r#"
-            SELECT id, title, description, first_letter, created
+            SELECT id as "id: u32", title, description, first_letter, created
             FROM Term 
             WHERE first_letter = ?
             ORDER BY title
             "#,
             letter
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         Ok(terms)
@@ -87,7 +87,7 @@ impl Term {
             ORDER BY first_letter
             "#
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let letters = letters
@@ -110,7 +110,7 @@ impl Term {
             new_term.description,
             new_term.first_letter
         )
-        .execute(&mut **db)
+        .execute(&mut *db)
         .await?;
 
         Ok(result.last_insert_id() as u32)
@@ -163,16 +163,15 @@ impl Term {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Cast database connection to the correct type
-        let conn = &mut **db as &mut sqlx::MySqlConnection;
-        let result = query_builder.execute(conn).await?;
+        // Fix: Pass the connection correctly
+        let result = query_builder.execute(&mut *db).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
         let result = sqlx::query!("DELETE FROM Term WHERE id = ?", id)
-            .execute(&mut **db)
+            .execute(&mut *db)
             .await?;
         
         Ok(result.rows_affected() > 0)
@@ -184,14 +183,14 @@ impl Term {
         let terms = sqlx::query_as!(
             Term,
             r#"
-            SELECT id, title, description, first_letter, created
+            SELECT id as "id: u32", title, description, first_letter, created
             FROM Term 
             WHERE title LIKE ? OR description LIKE ?
             ORDER BY title
             "#,
             search_query, search_query
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         Ok(terms)

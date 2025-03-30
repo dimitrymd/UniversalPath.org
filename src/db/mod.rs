@@ -3,4 +3,9 @@ pub mod connection;
 
 // Re-export important items
 pub use connection::UniversalPathDb;
-pub use models::*;
+
+// Re-export models explicitly to avoid unused import warnings
+pub use models::article::*;
+pub use models::category::*;
+pub use models::term::*;
+pub use models::user::*;

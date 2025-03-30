@@ -99,13 +99,17 @@ impl Article {
                 id, title, release_date, publish_date, author_id, note, category_id, 
                 resume, txtfield, copyright, lasteditedby_userid, lastedited_date, 
                 priority, type as "type_: String", event_id, keywords, description, 
-                short_title, available_on_site, available_on_api, master, new_ 
+                short_title, 
+                available_on_site as "available_on_site: bool", 
+                available_on_api as "available_on_api: bool", 
+                master as "master: bool", 
+                new_ as "new_: bool"
             FROM articles 
             WHERE id = ? AND available_on_site = 1
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(article)
@@ -127,7 +131,7 @@ impl Article {
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         match result {
@@ -185,7 +189,7 @@ impl Article {
             "#,
             limit
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let articles = results
@@ -248,7 +252,7 @@ impl Article {
             "#,
             category_id, limit, offset
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let articles = results
@@ -312,7 +316,7 @@ impl Article {
             "#,
             tag_id, limit, offset
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let articles = results
@@ -390,7 +394,7 @@ impl Article {
             new_article.master,
             new_article.new_
         )
-        .execute(&mut **db)
+        .execute(&mut *db)
         .await?;
 
         Ok(result.last_insert_id() as u32)
@@ -528,16 +532,15 @@ impl Article {
         // Finally, add the id for the WHERE clause
         query_builder = query_builder.bind(update_article.id);
 
-        // Fix: Cast database connection to the correct type
-        let conn = &mut **db as &mut sqlx::MySqlConnection;
-        let result = query_builder.execute(conn).await?;
+        // Fix: Pass the connection correctly
+        let result = query_builder.execute(&mut *db).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
         let result = sqlx::query!("DELETE FROM articles WHERE id = ?", id)
-            .execute(&mut **db)
+            .execute(&mut *db)
             .await?;
         
         Ok(result.rows_affected() > 0)
@@ -565,7 +568,7 @@ impl Article {
             "#,
             search_query, search_query, search_query, search_query, limit
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let articles = results

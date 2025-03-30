@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n            SELECT id, title, description, first_letter, created\n            FROM Term \n            WHERE first_letter = ?\n            ORDER BY title\n            ",
+  "query": "\n            SELECT id as \"id: u32\", title, description, first_letter, created\n            FROM Term \n            ORDER BY title\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: u32",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | AUTO_INCREMENT",
@@ -55,7 +55,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false,
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "9f0e9cabc83c1209ae5c5f7d3c540db18420a7248d51ddc216c551363899fa87"
+  "hash": "bf4d0da6f8484f39f5a1eb91b1c4b578d5929df897717d17ebe2d1a97c6bb01f"
 }

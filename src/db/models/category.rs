@@ -86,7 +86,7 @@ impl Category {
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(category)
@@ -105,7 +105,7 @@ impl Category {
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         match result {
@@ -151,7 +151,7 @@ impl Category {
             ORDER BY c.priority DESC, c.name
             "#
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let categories = results
@@ -200,7 +200,7 @@ impl Category {
             "#,
             parent_id
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let categories = results
@@ -286,7 +286,7 @@ impl Category {
             new_category.redirect,
             new_category.priority
         )
-        .execute(&mut **db)
+        .execute(&mut *db)
         .await?;
 
         Ok(result.last_insert_id() as u32)
@@ -439,9 +439,8 @@ impl Category {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Cast database connection to the correct type
-        let conn = &mut **db as &mut sqlx::MySqlConnection;
-        let result = query_builder.execute(conn).await?;
+        // Fix: Pass the connection correctly
+        let result = query_builder.execute(&mut *db).await?;
         
         // Update also requires updating all subcategories' level and root_id if parent_id changed
         if update_category.parent_id.is_some() {
@@ -462,7 +461,7 @@ impl Category {
                 "SELECT id FROM categories WHERE parent_id = ?",
                 parent_id
             )
-            .fetch_all(&mut **db)
+            .fetch_all(&mut *db)
             .await?;
 
             // Update each subcategory
@@ -474,7 +473,7 @@ impl Category {
                     parent_root_id,
                     subcategory.id
                 )
-                .execute(&mut **db)
+                .execute(&mut *db)
                 .await?;
 
                 // Recursively update its subcategories
@@ -491,7 +490,7 @@ impl Category {
             "SELECT COUNT(*) as count FROM categories WHERE parent_id = ?",
             id
         )
-        .fetch_one(&mut **db)
+        .fetch_one(&mut *db)
         .await?;
 
         if subcategories.count > 0 {
@@ -504,7 +503,7 @@ impl Category {
             "SELECT COUNT(*) as count FROM articles WHERE category_id = ?",
             id
         )
-        .fetch_one(&mut **db)
+        .fetch_one(&mut *db)
         .await?;
 
         if articles.count > 0 {
@@ -514,7 +513,7 @@ impl Category {
 
         // Delete the category
         let result = sqlx::query!("DELETE FROM categories WHERE id = ?", id)
-            .execute(&mut **db)
+            .execute(&mut *db)
             .await?;
 
         Ok(result.rows_affected() > 0)
@@ -539,7 +538,7 @@ impl Category {
             "#,
             search_query, search_query, search_query, search_query, limit
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         let categories = results

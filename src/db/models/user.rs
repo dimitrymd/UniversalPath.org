@@ -72,7 +72,7 @@ impl User {
             "#,
             id
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(user)
@@ -90,7 +90,7 @@ impl User {
             "#,
             username
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(user)
@@ -108,7 +108,7 @@ impl User {
             "#,
             email
         )
-        .fetch_optional(&mut **db)
+        .fetch_optional(&mut *db)
         .await?;
 
         Ok(user)
@@ -125,7 +125,7 @@ impl User {
             ORDER BY username
             "#
         )
-        .fetch_all(&mut **db)
+        .fetch_all(&mut *db)
         .await?;
 
         Ok(users)
@@ -149,7 +149,7 @@ impl User {
             hashed_password,
             new_user.is_admin
         )
-        .execute(&mut **db)
+        .execute(&mut *db)
         .await?;
 
         Ok(result.last_insert_id() as u32)
@@ -230,16 +230,15 @@ impl User {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Cast database connection to the correct type
-        let conn = &mut **db as &mut sqlx::MySqlConnection;
-        let result = query_builder.execute(conn).await?;
+        // Fix: Pass the connection correctly
+        let result = query_builder.execute(&mut *db).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
         let result = sqlx::query!("DELETE FROM users WHERE id = ?", id)
-            .execute(&mut **db)
+            .execute(&mut *db)
             .await?;
         
         Ok(result.rows_affected() > 0)
@@ -247,7 +246,7 @@ impl User {
 
     pub async fn update_last_login(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
         let result = sqlx::query!("UPDATE users SET last_login = NOW() WHERE id = ?", id)
-            .execute(&mut **db)
+            .execute(&mut *db)
             .await?;
         
         Ok(result.rows_affected() > 0)

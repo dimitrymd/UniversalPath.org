@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n            SELECT \n                id, title, release_date, publish_date, author_id, note, category_id, \n                resume, txtfield, copyright, lasteditedby_userid, lastedited_date, \n                priority, type as \"type_: String\", event_id, keywords, description, \n                short_title, available_on_site, available_on_api, master, new_ \n            FROM articles \n            WHERE id = ? AND available_on_site = 1\n            ",
+  "query": "\n            SELECT \n                id, title, release_date, publish_date, author_id, note, category_id, \n                resume, txtfield, copyright, lasteditedby_userid, lastedited_date, \n                priority, type as \"type_: String\", event_id, keywords, description, \n                short_title, \n                available_on_site as \"available_on_site: bool\", \n                available_on_api as \"available_on_api: bool\", \n                master as \"master: bool\", \n                new_ as \"new_: bool\"\n            FROM articles \n            WHERE id = ? AND available_on_site = 1\n            ",
   "describe": {
     "columns": [
       {
@@ -185,7 +185,7 @@
       },
       {
         "ordinal": 18,
-        "name": "available_on_site",
+        "name": "available_on_site: bool",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL",
@@ -195,7 +195,7 @@
       },
       {
         "ordinal": 19,
-        "name": "available_on_api",
+        "name": "available_on_api: bool",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL",
@@ -205,7 +205,7 @@
       },
       {
         "ordinal": 20,
-        "name": "master",
+        "name": "master: bool",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL | NO_DEFAULT_VALUE",
@@ -215,7 +215,7 @@
       },
       {
         "ordinal": 21,
-        "name": "new_",
+        "name": "new_: bool",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL",
@@ -252,5 +252,5 @@
       false
     ]
   },
-  "hash": "106eaa5aea0f37ffd03a3d544a8ae0f35f9ded223abc6cf7baea96829ebebd1b"
+  "hash": "723df71d37ce1645ba3228cdd6256583d6d83d38ed463205d6a6abcbf4f150d6"
 }
