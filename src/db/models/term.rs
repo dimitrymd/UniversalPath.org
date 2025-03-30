@@ -1,6 +1,7 @@
 use rocket::serde::{Serialize, Deserialize};
 use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
+use crate::db::connection::ConnectionExt;
 use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +33,8 @@ pub struct UpdateTerm {
 
 impl Term {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<Term>> {
+        let conn = db.get_conn();
+        
         let term = sqlx::query_as!(
             Term,
             r#"
@@ -41,13 +44,15 @@ impl Term {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(term)
     }
 
     pub async fn find_all(db: &mut Connection<UniversalPathDb>) -> Result<Vec<Term>> {
+        let conn = db.get_conn();
+        
         let terms = sqlx::query_as!(
             Term,
             r#"
@@ -56,13 +61,15 @@ impl Term {
             ORDER BY title
             "#
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         Ok(terms)
     }
 
     pub async fn find_by_letter(db: &mut Connection<UniversalPathDb>, letter: &str) -> Result<Vec<Term>> {
+        let conn = db.get_conn();
+        
         let terms = sqlx::query_as!(
             Term,
             r#"
@@ -73,13 +80,15 @@ impl Term {
             "#,
             letter
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         Ok(terms)
     }
 
     pub async fn get_all_letters(db: &mut Connection<UniversalPathDb>) -> Result<Vec<String>> {
+        let conn = db.get_conn();
+        
         let letters = sqlx::query!(
             r#"
             SELECT DISTINCT first_letter
@@ -87,7 +96,7 @@ impl Term {
             ORDER BY first_letter
             "#
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let letters = letters
@@ -99,6 +108,8 @@ impl Term {
     }
 
     pub async fn create(db: &mut Connection<UniversalPathDb>, new_term: NewTerm) -> Result<u32> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!(
             r#"
             INSERT INTO Term 
@@ -110,13 +121,15 @@ impl Term {
             new_term.description,
             new_term.first_letter
         )
-        .execute(&mut *db)
+        .execute(conn)
         .await?;
 
         Ok(result.last_insert_id() as u32)
     }
 
     pub async fn update(db: &mut Connection<UniversalPathDb>, update_term: UpdateTerm) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let mut query = String::from("UPDATE Term SET");
         let mut params = Vec::new();
         let mut param_index = 1;
@@ -164,20 +177,24 @@ impl Term {
         }
 
         // Fix: Pass the connection correctly
-        let result = query_builder.execute(&mut *db).await?;
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!("DELETE FROM Term WHERE id = ?", id)
-            .execute(&mut *db)
+            .execute(conn)
             .await?;
         
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn search(db: &mut Connection<UniversalPathDb>, query: &str) -> Result<Vec<Term>> {
+        let conn = db.get_conn();
+        
         let search_query = format!("%{}%", query);
 
         let terms = sqlx::query_as!(
@@ -190,7 +207,7 @@ impl Term {
             "#,
             search_query, search_query
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         Ok(terms)

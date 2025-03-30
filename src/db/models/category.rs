@@ -1,6 +1,7 @@
 use rocket::serde::{Serialize, Deserialize};
 use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
+use crate::db::connection::ConnectionExt;
 use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,6 +76,8 @@ pub struct UpdateCategory {
 
 impl Category {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<Category>> {
+        let conn = db.get_conn();
+        
         let category = sqlx::query_as!(
             Category,
             r#"
@@ -86,13 +89,15 @@ impl Category {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(category)
     }
 
     pub async fn find_by_id_with_counts(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<CategoryWithCounts>> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!(
             r#"
             SELECT 
@@ -105,7 +110,7 @@ impl Category {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         match result {
@@ -139,6 +144,8 @@ impl Category {
     }
 
     pub async fn find_root_categories(db: &mut Connection<UniversalPathDb>) -> Result<Vec<CategoryWithCounts>> {
+        let conn = db.get_conn();
+        
         let results = sqlx::query!(
             r#"
             SELECT 
@@ -151,7 +158,7 @@ impl Category {
             ORDER BY c.priority DESC, c.name
             "#
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let categories = results
@@ -187,6 +194,8 @@ impl Category {
     }
 
     pub async fn find_subcategories(db: &mut Connection<UniversalPathDb>, parent_id: u32) -> Result<Vec<CategoryWithCounts>> {
+        let conn = db.get_conn();
+        
         let results = sqlx::query!(
             r#"
             SELECT 
@@ -200,7 +209,7 @@ impl Category {
             "#,
             parent_id
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let categories = results
@@ -253,6 +262,8 @@ impl Category {
     }
 
     pub async fn create(db: &mut Connection<UniversalPathDb>, new_category: NewCategory) -> Result<u32> {
+        let conn = db.get_conn();
+        
         // Calculate level and root_id based on parent_id
         let (level, root_id) = if let Some(parent_id) = new_category.parent_id {
             if let Some(parent) = Self::find_by_id(db, parent_id).await? {
@@ -286,13 +297,15 @@ impl Category {
             new_category.redirect,
             new_category.priority
         )
-        .execute(&mut *db)
+        .execute(conn)
         .await?;
 
         Ok(result.last_insert_id() as u32)
     }
 
     pub async fn update(db: &mut Connection<UniversalPathDb>, update_category: UpdateCategory) -> Result<bool> {
+        let conn = db.get_conn();
+        
         // If parent_id is changing, we need to recalculate level and root_id
         let (level, root_id) = if let Some(parent_id) = update_category.parent_id {
             if let Some(parent) = Self::find_by_id(db, parent_id).await? {
@@ -440,7 +453,7 @@ impl Category {
         }
 
         // Fix: Pass the connection correctly
-        let result = query_builder.execute(&mut *db).await?;
+        let result = query_builder.execute(conn).await?;
         
         // Update also requires updating all subcategories' level and root_id if parent_id changed
         if update_category.parent_id.is_some() {
@@ -451,6 +464,8 @@ impl Category {
     }
 
     async fn update_subcategories_hierarchy(db: &mut Connection<UniversalPathDb>, parent_id: u32) -> Result<()> {
+        let conn = db.get_conn();
+        
         // Get the parent to determine its level and root_id
         if let Some(parent) = Self::find_by_id(db, parent_id).await? {
             let parent_level = parent.level;
@@ -461,7 +476,7 @@ impl Category {
                 "SELECT id FROM categories WHERE parent_id = ?",
                 parent_id
             )
-            .fetch_all(&mut *db)
+            .fetch_all(conn)
             .await?;
 
             // Update each subcategory
@@ -473,7 +488,7 @@ impl Category {
                     parent_root_id,
                     subcategory.id
                 )
-                .execute(&mut *db)
+                .execute(conn)
                 .await?;
 
                 // Recursively update its subcategories
@@ -485,12 +500,14 @@ impl Category {
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
         // Check for subcategories first
         let subcategories = sqlx::query!(
             "SELECT COUNT(*) as count FROM categories WHERE parent_id = ?",
             id
         )
-        .fetch_one(&mut *db)
+        .fetch_one(conn)
         .await?;
 
         if subcategories.count > 0 {
@@ -503,7 +520,7 @@ impl Category {
             "SELECT COUNT(*) as count FROM articles WHERE category_id = ?",
             id
         )
-        .fetch_one(&mut *db)
+        .fetch_one(conn)
         .await?;
 
         if articles.count > 0 {
@@ -513,13 +530,15 @@ impl Category {
 
         // Delete the category
         let result = sqlx::query!("DELETE FROM categories WHERE id = ?", id)
-            .execute(&mut *db)
+            .execute(conn)
             .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn search(db: &mut Connection<UniversalPathDb>, query: &str, limit: Option<u32>) -> Result<Vec<CategoryWithCounts>> {
+        let conn = db.get_conn();
+        
         let limit = limit.unwrap_or(20);
         let search_query = format!("%{}%", query);
 
@@ -538,7 +557,7 @@ impl Category {
             "#,
             search_query, search_query, search_query, search_query, limit
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let categories = results

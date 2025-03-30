@@ -1,6 +1,7 @@
 use rocket::serde::{Serialize, Deserialize};
 use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
+use crate::db::connection::ConnectionExt;
 use anyhow::Result;
 use bcrypt::{hash, verify, DEFAULT_COST};
 
@@ -61,6 +62,8 @@ pub struct UserToken {
 
 impl User {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<User>> {
+        let conn = db.get_conn();
+        
         let user = sqlx::query_as!(
             User,
             r#"
@@ -72,13 +75,15 @@ impl User {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(user)
     }
 
     pub async fn find_by_username(db: &mut Connection<UniversalPathDb>, username: &str) -> Result<Option<User>> {
+        let conn = db.get_conn();
+        
         let user = sqlx::query_as!(
             User,
             r#"
@@ -90,13 +95,15 @@ impl User {
             "#,
             username
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(user)
     }
 
     pub async fn find_by_email(db: &mut Connection<UniversalPathDb>, email: &str) -> Result<Option<User>> {
+        let conn = db.get_conn();
+        
         let user = sqlx::query_as!(
             User,
             r#"
@@ -108,13 +115,15 @@ impl User {
             "#,
             email
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(user)
     }
 
     pub async fn find_all(db: &mut Connection<UniversalPathDb>) -> Result<Vec<User>> {
+        let conn = db.get_conn();
+        
         let users = sqlx::query_as!(
             User,
             r#"
@@ -125,13 +134,15 @@ impl User {
             ORDER BY username
             "#
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         Ok(users)
     }
 
     pub async fn create(db: &mut Connection<UniversalPathDb>, new_user: NewUser) -> Result<u32> {
+        let conn = db.get_conn();
+        
         // Hash the password
         let hashed_password = hash(new_user.password, DEFAULT_COST)?;
 
@@ -149,13 +160,15 @@ impl User {
             hashed_password,
             new_user.is_admin
         )
-        .execute(&mut *db)
+        .execute(conn)
         .await?;
 
         Ok(result.last_insert_id() as u32)
     }
 
     pub async fn update(db: &mut Connection<UniversalPathDb>, update_user: UpdateUser) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let mut query = String::from("UPDATE users SET");
         let mut params = Vec::new();
         let mut param_index = 1;
@@ -230,23 +243,27 @@ impl User {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Pass the connection correctly
-        let result = query_builder.execute(&mut *db).await?;
+        // Use the connection
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!("DELETE FROM users WHERE id = ?", id)
-            .execute(&mut *db)
+            .execute(conn)
             .await?;
         
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn update_last_login(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!("UPDATE users SET last_login = NOW() WHERE id = ?", id)
-            .execute(&mut *db)
+            .execute(conn)
             .await?;
         
         Ok(result.rows_affected() > 0)

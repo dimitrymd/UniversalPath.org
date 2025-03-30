@@ -2,6 +2,7 @@ use chrono::{NaiveDate, NaiveDateTime};
 use rocket::serde::{Serialize, Deserialize};
 use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
+use crate::db::connection::ConnectionExt;
 use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +93,8 @@ pub struct UpdateArticle {
 
 impl Article {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<Article>> {
+        let conn = db.get_conn();
+        
         let article = sqlx::query_as!(
             Article,
             r#"
@@ -109,13 +112,15 @@ impl Article {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         Ok(article)
     }
 
     pub async fn find_by_id_with_author(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<ArticleWithAuthor>> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!(
             r#"
             SELECT 
@@ -131,7 +136,7 @@ impl Article {
             "#,
             id
         )
-        .fetch_optional(&mut *db)
+        .fetch_optional(conn)
         .await?;
 
         match result {
@@ -172,6 +177,8 @@ impl Article {
     }
 
     pub async fn find_recent(db: &mut Connection<UniversalPathDb>, limit: u32) -> Result<Vec<ArticleWithAuthor>> {
+        let conn = db.get_conn();
+        
         let results = sqlx::query!(
             r#"
             SELECT 
@@ -189,7 +196,7 @@ impl Article {
             "#,
             limit
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let articles = results
@@ -232,6 +239,7 @@ impl Article {
     }
 
     pub async fn find_by_category(db: &mut Connection<UniversalPathDb>, category_id: u32, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
+        let conn = db.get_conn();
         let limit = limit.unwrap_or(100);
         let offset = offset.unwrap_or(0);
 
@@ -252,7 +260,7 @@ impl Article {
             "#,
             category_id, limit, offset
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let articles = results
@@ -295,6 +303,7 @@ impl Article {
     }
 
     pub async fn find_by_tag(db: &mut Connection<UniversalPathDb>, tag_id: u32, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
+        let conn = db.get_conn();
         let limit = limit.unwrap_or(100);
         let offset = offset.unwrap_or(0);
 
@@ -316,7 +325,7 @@ impl Article {
             "#,
             tag_id, limit, offset
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let articles = results
@@ -363,6 +372,8 @@ impl Article {
         new_article: NewArticle,
         user_id: u32
     ) -> Result<u32> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!(
             r#"
             INSERT INTO articles 
@@ -394,7 +405,7 @@ impl Article {
             new_article.master,
             new_article.new_
         )
-        .execute(&mut *db)
+        .execute(conn)
         .await?;
 
         Ok(result.last_insert_id() as u32)
@@ -404,6 +415,8 @@ impl Article {
         db: &mut Connection<UniversalPathDb>, 
         update_article: UpdateArticle
     ) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let mut query = String::from("UPDATE articles SET lasteditedby_userid = ?, lastedited_date = CURDATE()");
 
         if update_article.title.is_some() {
@@ -532,21 +545,24 @@ impl Article {
         // Finally, add the id for the WHERE clause
         query_builder = query_builder.bind(update_article.id);
 
-        // Fix: Pass the connection correctly
-        let result = query_builder.execute(&mut *db).await?;
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
         let result = sqlx::query!("DELETE FROM articles WHERE id = ?", id)
-            .execute(&mut *db)
+            .execute(conn)
             .await?;
         
         Ok(result.rows_affected() > 0)
     }
 
     pub async fn search(db: &mut Connection<UniversalPathDb>, query: &str, limit: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
+        let conn = db.get_conn();
+        
         let limit = limit.unwrap_or(20);
         let search_query = format!("%{}%", query);
 
@@ -568,7 +584,7 @@ impl Article {
             "#,
             search_query, search_query, search_query, search_query, limit
         )
-        .fetch_all(&mut *db)
+        .fetch_all(conn)
         .await?;
 
         let articles = results
