@@ -1,0 +1,11 @@
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/libnormpath-88ae6137b8569016.rmeta: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/base.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/cmp.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/error.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/common/mod.rs
+
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/libnormpath-88ae6137b8569016.rlib: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/base.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/cmp.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/error.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/common/mod.rs
+
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/normpath-88ae6137b8569016.d: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/base.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/cmp.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/error.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/common/mod.rs
+
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/lib.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/base.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/cmp.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/error.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/normpath-1.3.0/src/common/mod.rs:

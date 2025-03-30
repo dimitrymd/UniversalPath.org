@@ -1,0 +1,81 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-4">
+    <ul class="breadcrumbs">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.is_last %}
+                <li>{{ crumb.title }}</li>
+            {% else %}
+                <li><a href="{{ crumb.url }}">{{ crumb.title }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+
+<article class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="p-6">
+        <h1 class="text-3xl font-bold mb-2 text-primary-color">{{ article.article.title }}</h1>
+        
+        <div class="flex flex-wrap justify-between text-sm text-gray-500 mb-6 pb-4 border-b border-gray-200">
+            <div class="mb-2 md:mb-0">
+                {% if article.article.publish_date %}
+                <span class="mr-4">
+                    <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    {{ article.article.publish_date | date(format="%d.%m.%Y") }}
+                </span>
+                {% endif %}
+                
+                {% if article.author_name %}
+                <span>
+                    <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    {{ article.author_name }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <div>
+                {% if article.category_name %}
+                <span>
+                    <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    {% if article.article.category_id %}
+                    <a href="/category/{{ article.article.category_id }}" class="hover:underline">{{ article.category_name }}</a>
+                    {% else %}
+                    {{ article.category_name }}
+                    {% endif %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if article.article.resume %}
+        <div class="mb-6 italic">
+            {{ article.article.resume | safe }}
+        </div>
+        {% endif %}
+        
+        <div class="article-content">
+            {{ content | safe }}
+        </div>
+        
+        {% if article.article.copyright %}
+        <div class="mt-8 text-sm text-gray-500 border-t border-gray-200 pt-4">
+            {{ article.article.copyright }}
+        </div>
+        {% endif %}
+    </div>
+</article>
+
+{% if article.article.note %}
+<div class="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+    <h3 class="text-lg font-semibold mb-2 text-yellow-800">Примечание:</h3>
+    <p class="text-yellow-800">{{ article.article.note }}</p>
+</div>
+{% endif %}
+{% endblock %}

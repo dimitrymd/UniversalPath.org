@@ -1,0 +1,75 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold mb-4 text-primary-color">Глоссарий</h1>
+    <p class="text-lg mb-6">Словарь терминов, используемых в духовных учениях.</p>
+    
+    <!-- Alphabet navigation -->
+    <div class="flex flex-wrap justify-center mb-6">
+        {% for letter in letters %}
+        <a href="/glossary/{{ letter }}" 
+           class="px-3 py-2 m-1 rounded-md {% if current_letter and current_letter == letter %}bg-primary-color text-white{% else %}bg-white hover:bg-gray-100{% endif %} shadow-sm">
+            {{ letter }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    {% if current_letter %}
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Термины на букву "{{ current_letter }}"</h2>
+    </div>
+    {% else %}
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Все термины</h2>
+    </div>
+    {% endif %}
+    
+    <div class="p-6">
+        {% if terms and terms | length > 0 %}
+            <div class="space-y-8">
+                {% for term in terms %}
+                <div id="term-{{ term.id }}" class="term-container">
+                    <h3 class="text-xl font-bold mb-2 text-primary-color">{{ term.title }}</h3>
+                    <div class="prose max-w-none">
+                        {{ term.description | safe }}
+                    </div>
+                </div>
+                {% if not loop.last %}<hr class="my-6 border-gray-200">{% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-center text-gray-500 py-4">
+                {% if current_letter %}
+                Термины на букву "{{ current_letter }}" не найдены.
+                {% else %}
+                Термины не найдены.
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // If there's a hash in the URL, scroll to that term
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.location.hash) {
+            const termId = window.location.hash;
+            const termElement = document.querySelector(termId);
+            if (termElement) {
+                termElement.scrollIntoView({ behavior: 'smooth' });
+                
+                // Highlight the term for a moment
+                termElement.classList.add('bg-yellow-100');
+                setTimeout(() => {
+                    termElement.classList.remove('bg-yellow-100');
+                }, 1500);
+            }
+        }
+    });
+</script>
+{% endblock %}

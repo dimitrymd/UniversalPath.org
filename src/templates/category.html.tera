@@ -1,0 +1,91 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-4">
+    <ul class="breadcrumbs">
+        {% for crumb in breadcrumbs %}
+            {% if crumb.is_last %}
+                <li>{{ crumb.title }}</li>
+            {% else %}
+                <li><a href="{{ crumb.url }}">{{ crumb.title }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="mb-8">
+    <h1 class="text-3xl font-bold mb-4 text-primary-color">{{ category.category.title | default(value=category.category.name) }}</h1>
+    
+    {% if category.category.description %}
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        {{ category.category.description | safe }}
+    </div>
+    {% endif %}
+    
+    {% if category.category.text %}
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6 article-content">
+        {{ category.category.text | safe }}
+    </div>
+    {% endif %}
+</div>
+
+{% if subcategories and subcategories | length > 0 %}
+<div class="mb-10 bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Подкатегории</h2>
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for subcategory in subcategories %}
+        <a href="/category/{{ subcategory.category.id }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition duration-200 overflow-hidden">
+            <h3 class="text-xl font-bold mb-2 text-primary-color truncate">{{ subcategory.category.title | default(value=subcategory.category.name) }}</h3>
+            {% if subcategory.subcategory_count > 0 %}
+            <p class="text-sm text-gray-500 mb-2">Подкатегорий: {{ subcategory.subcategory_count }}</p>
+            {% endif %}
+            {% if subcategory.article_count > 0 %}
+            <p class="text-sm text-gray-500">Статей: {{ subcategory.article_count }}</p>
+            {% endif %}
+            {% if subcategory.category.preview %}
+            <p class="mt-2 text-gray-700">{{ subcategory.category.preview }}</p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if articles and articles | length > 0 %}
+<div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Статьи</h2>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 gap-6">
+            {% for article in articles %}
+            <a href="/article/{{ article.article.id }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition duration-200">
+                <h3 class="text-xl font-bold mb-2 text-primary-color">{{ article.article.title }}</h3>
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm text-gray-500">
+                        {% if article.author_name %}
+                        Автор: {{ article.author_name }}
+                        {% endif %}
+                    </span>
+                    <span class="text-sm text-gray-500">
+                        {% if article.article.publish_date %}
+                        {{ article.article.publish_date | date(format="%d.%m.%Y") }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% if article.article.resume %}
+                <p class="text-gray-700">{{ article.article.resume | striptags | truncate(length=150) }}</p>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% elif not subcategories or subcategories | length == 0 %}
+<div class="bg-white p-6 rounded-lg shadow-md text-center">
+    <p class="text-gray-500">В этой категории пока нет статей.</p>
+</div>
+{% endif %}
+{% endblock %}

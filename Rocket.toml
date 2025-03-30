@@ -1,0 +1,23 @@
+[default]
+address = "127.0.0.1"
+port = 8000
+template_dir = "src/templates"
+limits = { forms = "10MiB", json = "10MiB" }
+secret_key = "XYkCxKu+PLAXvXzHl4EzGq3l3BLW+hVnQU/u3hVzKZY="
+
+[debug]
+address = "127.0.0.1"
+port = 8000
+template_dir = "src/templates"
+limits = { forms = "10MiB", json = "10MiB" }
+secret_key = "XYkCxKu+PLAXvXzHl4EzGq3l3BLW+hVnQU/u3hVzKZY="
+site_url = "localhost:8000"
+databases = { universal_path_db = { url = "mysql://root@localhost:3306/universal" } }
+
+[release]
+address = "0.0.0.0"
+port = 8000
+template_dir = "src/templates"
+limits = { forms = "10MiB", json = "10MiB" }
+site_url = "universalpath.org"
+databases = { universal_path_db = { url = "mysql://catman:xB6udTcQaR2afdDX@localhost:3306/catman" } }

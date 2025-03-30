@@ -1,0 +1,14 @@
+{
+    "db": "MySQL",
+    "1a6bc0d0ca221ffb4be1a3e46f2ebcb0fdeb29cd167016a56d5f2f99a1ec12ec": {
+      "describe": {
+        "columns": [],
+        "nullable": [],
+        "parameters": {
+          "Right": 1
+        }
+      },
+      "query": "DELETE FROM articles WHERE id = ?"
+    },
+    "db_version": "5.7.36"
+  }

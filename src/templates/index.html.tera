@@ -1,0 +1,81 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-10">
+    <h1 class="text-4xl font-bold mb-6 text-center text-primary-color">Добро пожаловать на портал Универсальный Путь</h1>
+    <p class="text-xl text-center max-w-3xl mx-auto">Здесь собраны духовные учения, которые помогут вам 
+    найти свой путь к внутреннему росту и развитию.</p>
+</div>
+
+<div class="mb-10 bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Категории</h2>
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for category in categories %}
+        <a href="/category/{{ category.category.id }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition duration-200 overflow-hidden">
+            <h3 class="text-xl font-bold mb-2 text-primary-color truncate">{{ category.category.title | default(value=category.category.name) }}</h3>
+            {% if category.subcategory_count > 0 %}
+            <p class="text-sm text-gray-500 mb-2">Подкатегорий: {{ category.subcategory_count }}</p>
+            {% endif %}
+            {% if category.article_count > 0 %}
+            <p class="text-sm text-gray-500">Статей: {{ category.article_count }}</p>
+            {% endif %}
+            {% if category.category.preview %}
+            <p class="mt-2 text-gray-700">{{ category.category.preview }}</p>
+            {% endif %}
+        </a>
+        {% else %}
+        <p class="col-span-3 text-center text-gray-500">Категории не найдены</p>
+        {% endfor %}
+    </div>
+</div>
+
+{% if recent_articles and recent_articles | length > 0 %}
+<div class="mb-10 bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">Последние статьи</h2>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for article in recent_articles %}
+            <a href="/article/{{ article.article.id }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition duration-200">
+                <h3 class="text-xl font-bold mb-2 text-primary-color">{{ article.article.title }}</h3>
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm text-gray-500">
+                        {% if article.author_name %}
+                        Автор: {{ article.author_name }}
+                        {% endif %}
+                    </span>
+                    <span class="text-sm text-gray-500">
+                        {% if article.article.publish_date %}
+                        {{ article.article.publish_date | date(format="%d.%m.%Y") }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% if article.article.resume %}
+                <p class="text-gray-700">{{ article.article.resume | striptags | truncate(length=150) }}</p>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">О проекте</h2>
+    </div>
+    <div class="p-6">
+        <p class="mb-4">Проект "Универсальный Путь" создан для того, чтобы собрать и систематизировать духовные учения, 
+        которые помогут каждому человеку найти свой путь к внутреннему росту и развитию.</p>
+        
+        <p class="mb-4">Наша цель - предоставить доступ к глубоким духовным знаниям в понятной и 
+        систематизированной форме, чтобы каждый мог выбрать то, что резонирует с его внутренним "я".</p>
+        
+        <p>Мы верим, что духовное развитие - это универсальный путь, доступный каждому человеку, 
+        независимо от его религиозных, культурных или социальных убеждений.</p>
+    </div>
+</div>
+{% endblock %}

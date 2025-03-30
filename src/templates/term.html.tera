@@ -1,0 +1,36 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold mb-4 text-primary-color">{{ term.title }}</h1>
+    <p class="text-lg mb-2">Термин</p>
+    
+    <!-- Alphabet navigation -->
+    <div class="flex flex-wrap mt-6 mb-6">
+        {% for letter in letters %}
+        <a href="/glossary/{{ letter }}" 
+           class="px-3 py-2 m-1 rounded-md {% if term.first_letter == letter %}bg-primary-color text-white{% else %}bg-white hover:bg-gray-100{% endif %} shadow-sm">
+            {{ letter }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-primary-color text-white p-4">
+        <h2 class="text-2xl font-bold">{{ term.title }}</h2>
+    </div>
+    
+    <div class="p-6">
+        <div class="prose max-w-none">
+            {{ term.description | safe }}
+        </div>
+        
+        <div class="mt-8 text-right">
+            <a href="/glossary/{{ term.first_letter }}" class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded">
+                Вернуться к глоссарию
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

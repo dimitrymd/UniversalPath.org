@@ -1,0 +1,69 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold mb-6 text-primary-color">Поиск</h1>
+    
+    <form action="/search" method="get" class="mb-8 flex">
+        <input 
+            type="text" 
+            name="q" 
+            value="{{ query }}" 
+            placeholder="Введите поисковый запрос..." 
+            class="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+            required
+        >
+        <button 
+            type="submit" 
+            class="px-4 py-2 bg-primary-color text-white rounded-r-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2"
+        >
+            Искать
+        </button>
+    </form>
+    
+    {% if query %}
+        {% if has_results %}
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="bg-primary-color text-white p-4">
+                    <h2 class="text-2xl font-bold">Результаты поиска: {{ query }}</h2>
+                </div>
+                
+                <div class="p-6">
+                    <div class="space-y-6">
+                        {% for article in articles %}
+                        <a href="/article/{{ article.article.id }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition duration-200">
+                            <h3 class="text-xl font-bold mb-2 text-primary-color">{{ article.article.title }}</h3>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm text-gray-500">
+                                    {% if article.author_name %}
+                                    Автор: {{ article.author_name }}
+                                    {% endif %}
+                                </span>
+                                <span class="text-sm text-gray-500">
+                                    {% if article.article.publish_date %}
+                                    {{ article.article.publish_date | date(format="%d.%m.%Y") }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if article.article.resume %}
+                            <p class="text-gray-700">{{ article.article.resume | striptags | truncate(length=150) }}</p>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <p class="text-xl mb-4">По запросу <strong>"{{ query }}"</strong> ничего не найдено.</p>
+                <p class="text-gray-600">Попробуйте изменить поисковый запрос или просмотреть наши <a href="/" class="text-primary-color hover:underline">категории</a>.</p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <p class="text-xl mb-4">Введите поисковый запрос</p>
+            <p class="text-gray-600">Вы можете искать по названию статьи, её содержанию или ключевым словам.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

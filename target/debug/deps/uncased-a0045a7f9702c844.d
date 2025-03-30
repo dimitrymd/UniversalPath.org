@@ -1,0 +1,11 @@
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/libuncased-a0045a7f9702c844.rmeta: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/serde.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/owned.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/borrowed.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/as_uncased.rs
+
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/libuncased-a0045a7f9702c844.rlib: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/serde.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/owned.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/borrowed.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/as_uncased.rs
+
+/Users/dimitrymd/Documents/prj/unipath-new/target/debug/deps/uncased-a0045a7f9702c844.d: /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/lib.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/serde.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/owned.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/borrowed.rs /Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/as_uncased.rs
+
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/lib.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/serde.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/owned.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/borrowed.rs:
+/Users/dimitrymd/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uncased-0.9.10/src/as_uncased.rs:
