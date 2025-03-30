@@ -1,6 +1,6 @@
 {
     "db": "MySQL",
-    "1a6bc0d0ca221ffb4be1a3e46f2ebcb0fdeb29cd167016a56d5f2f99a1ec12ec": {
+    "3dd88e5cd06dedc3515bc4afe1c3aed1679e5ef3b9c32e16c8ae4e2fc348ea78": {
       "describe": {
         "columns": [],
         "nullable": [],
@@ -9,6 +9,5 @@
         }
       },
       "query": "DELETE FROM articles WHERE id = ?"
-    },
-    "db_version": "5.7.36"
+    }
   }

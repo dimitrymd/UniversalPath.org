@@ -1,10 +1,10 @@
 use rocket::{Route, get, post, uri};
 use rocket::response::{Redirect, Flash};
 use rocket::form::Form;
-use rocket::http::{Cookie, CookieJar, Status};
+use rocket::http::{Cookie, CookieJar};
 use rocket_db_pools::Connection;
 use rocket_dyn_templates::{Template, context};
-use crate::db::{UniversalPathDb, models::{User, LoginUser}};
+use crate::db::{UniversalPathDb, models::{User, LoginUser, UserToken}};
 use jsonwebtoken::{encode, Header, EncodingKey};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -51,7 +51,7 @@ async fn login_submit(mut db: Connection<UniversalPathDb>, cookies: &CookieJar<'
                 .expect("Time went backwards")
                 .as_secs() + 24 * 3600; // Token valid for 24 hours
 
-            let claims = crate::db::models::UserToken {
+            let claims = UserToken {
                 id: user.id,
                 username: username.clone(),
                 is_admin: user.is_admin,

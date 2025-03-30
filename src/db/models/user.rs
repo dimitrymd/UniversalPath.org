@@ -164,7 +164,7 @@ impl User {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" firstname = ${}", param_index));
+            query.push_str(&format!(" firstname = ?"));
             params.push(firstname.clone());
             param_index += 1;
         }
@@ -173,7 +173,7 @@ impl User {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" lastname = ${}", param_index));
+            query.push_str(&format!(" lastname = ?"));
             params.push(lastname.clone());
             param_index += 1;
         }
@@ -182,7 +182,7 @@ impl User {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" email = ${}", param_index));
+            query.push_str(&format!(" email = ?"));
             params.push(email.clone());
             param_index += 1;
         }
@@ -192,7 +192,7 @@ impl User {
                 query.push_str(",");
             }
             let hashed_password = hash(password, DEFAULT_COST)?;
-            query.push_str(&format!(" password = ${}", param_index));
+            query.push_str(&format!(" password = ?"));
             params.push(hashed_password);
             param_index += 1;
         }
@@ -201,7 +201,7 @@ impl User {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" status = ${}", param_index));
+            query.push_str(&format!(" status = ?"));
             params.push(status.to_string());
             param_index += 1;
         }
@@ -210,22 +210,29 @@ impl User {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" is_admin = ${}", param_index));
+            query.push_str(&format!(" is_admin = ?"));
             params.push(is_admin.to_string());
             param_index += 1;
         }
 
+        // If nothing to update, return early
+        if param_index == 1 {
+            return Ok(true);
+        }
+
         // Add the WHERE clause
-        query.push_str(&format!(" WHERE id = ${}", param_index));
+        query.push_str(&format!(" WHERE id = ?"));
         params.push(update_user.id.to_string());
 
         // Use sqlx::query to execute the dynamic query
         let mut query_builder = sqlx::query(&query);
-        for param in params {
+        for param in &params {
             query_builder = query_builder.bind(param);
         }
 
-        let result = query_builder.execute(&mut **db).await?;
+        // Fix: Cast database connection to the correct type
+        let conn = &mut **db as &mut sqlx::MySqlConnection;
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }

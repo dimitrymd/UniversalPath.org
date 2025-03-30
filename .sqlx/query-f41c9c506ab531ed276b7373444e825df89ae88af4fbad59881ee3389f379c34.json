@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO Term \n            (title, description, first_letter, created)\n            VALUES\n            (?, ?, ?, NOW())\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f41c9c506ab531ed276b7373444e825df89ae88af4fbad59881ee3389f379c34"
+}

@@ -2,7 +2,6 @@ use chrono::{NaiveDate, NaiveDateTime};
 use rocket::serde::{Serialize, Deserialize};
 use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
-use sqlx::Row;
 use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -455,9 +454,6 @@ impl Article {
             query.push_str(", available_on_api = ?");
         }
         if update_article.master.is_some() {
-            query.push_str(" ?");
-        }
-        if update_article.master.is_some() {
             query.push_str(", master = ?");
         }
         if update_article.new_.is_some() {
@@ -532,7 +528,9 @@ impl Article {
         // Finally, add the id for the WHERE clause
         query_builder = query_builder.bind(update_article.id);
 
-        let result = query_builder.execute(&mut **db).await?;
+        // Fix: Cast database connection to the correct type
+        let conn = &mut **db as &mut sqlx::MySqlConnection;
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }

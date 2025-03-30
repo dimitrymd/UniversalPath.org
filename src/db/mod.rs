@@ -1,12 +1,6 @@
-pub mod article;
-pub mod category;
-pub mod term;
-pub mod user;
+pub mod models;
+pub mod connection;
 
-pub use article::*;
-pub use category::*;
-pub use term::*;
-pub use user::*;
-
-use serde::{Serialize, Deserialize};
-use chrono::{NaiveDate, NaiveDateTime};
+// Re-export important items
+pub use connection::UniversalPathDb;
+pub use models::*;

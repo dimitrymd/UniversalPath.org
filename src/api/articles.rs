@@ -68,10 +68,10 @@ async fn search_articles(mut db: Connection<UniversalPathDb>, _key: ApiKey, q: S
 #[post("/articles", format = "json", data = "<article>", rank = 1)]
 async fn create_article(
     mut db: Connection<UniversalPathDb>, 
-    admin: AdminUser,
+    _admin: AdminUser,
     article: Json<NewArticle>
 ) -> Json<ApiResult<u32>> {
-    match Article::create(&mut db, article.0, admin.user_id).await {
+    match Article::create(&mut db, article.0, _admin.user_id).await {
         Ok(id) => Json(Ok(ApiResponse {
             status: "success".to_string(),
             data: id,
@@ -118,7 +118,7 @@ async fn update_article(
 #[delete("/articles/<id>", rank = 1)]
 async fn delete_article(
     mut db: Connection<UniversalPathDb>, 
-    admin: AdminUser,
+    _admin: AdminUser,
     id: u32
 ) -> Json<ApiResult<bool>> {
     match Article::delete(&mut db, id).await {

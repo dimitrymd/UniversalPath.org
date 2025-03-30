@@ -317,7 +317,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" name = ${}", param_index));
+            query.push_str(&format!(" name = ?"));
             params.push(name.clone());
             param_index += 1;
         }
@@ -326,7 +326,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" title = ${}", param_index));
+            query.push_str(&format!(" title = ?"));
             params.push(title.clone());
             param_index += 1;
         }
@@ -335,18 +335,18 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" parent_id = ${}", param_index));
+            query.push_str(&format!(" parent_id = ?"));
             params.push(update_category.parent_id.unwrap().to_string());
             param_index += 1;
 
             if let Some(lvl) = level {
-                query.push_str(&format!(", level = ${}", param_index));
+                query.push_str(&format!(", level = ?"));
                 params.push(lvl.to_string());
                 param_index += 1;
             }
 
             if let Some(rt) = root_id {
-                query.push_str(&format!(", root_id = ${}", param_index));
+                query.push_str(&format!(", root_id = ?"));
                 params.push(rt.to_string());
                 param_index += 1;
             }
@@ -356,7 +356,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" url = ${}", param_index));
+            query.push_str(&format!(" url = ?"));
             params.push(url.clone());
             param_index += 1;
         }
@@ -365,7 +365,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" preview = ${}", param_index));
+            query.push_str(&format!(" preview = ?"));
             params.push(preview.clone());
             param_index += 1;
         }
@@ -374,7 +374,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" description = ${}", param_index));
+            query.push_str(&format!(" description = ?"));
             params.push(description.clone());
             param_index += 1;
         }
@@ -383,7 +383,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" keywords = ${}", param_index));
+            query.push_str(&format!(" keywords = ?"));
             params.push(keywords.clone());
             param_index += 1;
         }
@@ -392,7 +392,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" available = ${}", param_index));
+            query.push_str(&format!(" available = ?"));
             params.push(available.to_string());
             param_index += 1;
         }
@@ -401,7 +401,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" text = ${}", param_index));
+            query.push_str(&format!(" text = ?"));
             params.push(text.clone());
             param_index += 1;
         }
@@ -410,7 +410,7 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" redirect = ${}", param_index));
+            query.push_str(&format!(" redirect = ?"));
             params.push(redirect.clone());
             param_index += 1;
         }
@@ -419,22 +419,29 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" priority = ${}", param_index));
+            query.push_str(&format!(" priority = ?"));
             params.push(priority.to_string());
             param_index += 1;
         }
 
+        // If nothing to update, return early
+        if param_index == 1 {
+            return Ok(true);
+        }
+
         // Add the WHERE clause
-        query.push_str(&format!(" WHERE id = ${}", param_index));
+        query.push_str(&format!(" WHERE id = ?"));
         params.push(update_category.id.to_string());
 
         // Use sqlx::query to execute the dynamic query
         let mut query_builder = sqlx::query(&query);
-        for param in params {
+        for param in &params {
             query_builder = query_builder.bind(param);
         }
 
-        let result = query_builder.execute(&mut **db).await?;
+        // Fix: Cast database connection to the correct type
+        let conn = &mut **db as &mut sqlx::MySqlConnection;
+        let result = query_builder.execute(conn).await?;
         
         // Update also requires updating all subcategories' level and root_id if parent_id changed
         if update_category.parent_id.is_some() {

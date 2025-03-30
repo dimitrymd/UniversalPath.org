@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO articles \n            (title, release_date, publish_date, author_id, note, category_id,\n             resume, txtfield, copyright, lasteditedby_userid, lastedited_date,\n             priority, type, event_id, keywords, description, short_title,\n             available_on_site, available_on_api, master, new_)\n            VALUES\n            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 20
+    },
+    "nullable": []
+  },
+  "hash": "3d13a07263895fbea59258052b208e5ce862b3cd6eafa52975311d23fe3257b2"
+}

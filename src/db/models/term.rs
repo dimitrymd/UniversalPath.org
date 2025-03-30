@@ -125,7 +125,7 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" title = ${}", param_index));
+            query.push_str(&format!(" title = ?"));
             params.push(title.clone());
             param_index += 1;
         }
@@ -134,7 +134,7 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" description = ${}", param_index));
+            query.push_str(&format!(" description = ?"));
             params.push(description.clone());
             param_index += 1;
         }
@@ -143,22 +143,29 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" first_letter = ${}", param_index));
+            query.push_str(&format!(" first_letter = ?"));
             params.push(first_letter.clone());
             param_index += 1;
         }
 
+        // If nothing to update, return early
+        if param_index == 1 {
+            return Ok(true);
+        }
+
         // Add the WHERE clause
-        query.push_str(&format!(" WHERE id = ${}", param_index));
+        query.push_str(&format!(" WHERE id = ?"));
         params.push(update_term.id.to_string());
 
         // Use sqlx::query to execute the dynamic query
         let mut query_builder = sqlx::query(&query);
-        for param in params {
+        for param in &params {
             query_builder = query_builder.bind(param);
         }
 
-        let result = query_builder.execute(&mut **db).await?;
+        // Fix: Cast database connection to the correct type
+        let conn = &mut **db as &mut sqlx::MySqlConnection;
+        let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
     }
