@@ -3,6 +3,7 @@ use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
 use crate::db::connection::ConnectionExt;
 use anyhow::Result;
+use sqlx::Row; 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -35,28 +36,40 @@ impl Term {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<Term>> {
         let conn = db.get_conn();
         
-        let term = sqlx::query_as!(
-            Term,
+        // Use a simpler query to avoid type conversion issues
+        let row = sqlx::query(
             r#"
-            SELECT id as "id: u32", title, description, first_letter, created
+            SELECT id, title, description, first_letter, created
             FROM Term 
             WHERE id = ?
-            "#,
-            id
+            "#
         )
+        .bind(id)
         .fetch_optional(conn)
         .await?;
 
-        Ok(term)
+        match row {
+            Some(row) => {
+                let term = Term {
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    description: row.get("description"),
+                    first_letter: row.get("first_letter"),
+                    created: row.get("created"),
+                };
+                Ok(Some(term))
+            }
+            None => Ok(None),
+        }
     }
 
     pub async fn find_all(db: &mut Connection<UniversalPathDb>) -> Result<Vec<Term>> {
         let conn = db.get_conn();
         
-        let terms = sqlx::query_as!(
-            Term,
+        // Use a simpler query to avoid type conversion issues
+        let rows = sqlx::query(
             r#"
-            SELECT id as "id: u32", title, description, first_letter, created
+            SELECT id, title, description, first_letter, created
             FROM Term 
             ORDER BY title
             "#
@@ -64,24 +77,50 @@ impl Term {
         .fetch_all(conn)
         .await?;
 
+        let terms = rows
+            .into_iter()
+            .map(|row| {
+                Term {
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    description: row.get("description"),
+                    first_letter: row.get("first_letter"),
+                    created: row.get("created"),
+                }
+            })
+            .collect();
+
         Ok(terms)
     }
 
     pub async fn find_by_letter(db: &mut Connection<UniversalPathDb>, letter: &str) -> Result<Vec<Term>> {
         let conn = db.get_conn();
         
-        let terms = sqlx::query_as!(
-            Term,
+        // Use a simpler query to avoid type conversion issues
+        let rows = sqlx::query(
             r#"
-            SELECT id as "id: u32", title, description, first_letter, created
+            SELECT id, title, description, first_letter, created
             FROM Term 
             WHERE first_letter = ?
             ORDER BY title
-            "#,
-            letter
+            "#
         )
+        .bind(letter)
         .fetch_all(conn)
         .await?;
+
+        let terms = rows
+            .into_iter()
+            .map(|row| {
+                Term {
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    description: row.get("description"),
+                    first_letter: row.get("first_letter"),
+                    created: row.get("created"),
+                }
+            })
+            .collect();
 
         Ok(terms)
     }
@@ -89,7 +128,7 @@ impl Term {
     pub async fn get_all_letters(db: &mut Connection<UniversalPathDb>) -> Result<Vec<String>> {
         let conn = db.get_conn();
         
-        let letters = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT DISTINCT first_letter
             FROM Term 
@@ -99,9 +138,9 @@ impl Term {
         .fetch_all(conn)
         .await?;
 
-        let letters = letters
+        let letters = rows
             .into_iter()
-            .map(|row| row.first_letter)
+            .map(|row| row.get::<String, _>("first_letter"))
             .collect();
 
         Ok(letters)
@@ -110,17 +149,17 @@ impl Term {
     pub async fn create(db: &mut Connection<UniversalPathDb>, new_term: NewTerm) -> Result<u32> {
         let conn = db.get_conn();
         
-        let result = sqlx::query!(
+        let result = sqlx::query(
             r#"
             INSERT INTO Term 
             (title, description, first_letter, created)
             VALUES
             (?, ?, ?, NOW())
-            "#,
-            new_term.title,
-            new_term.description,
-            new_term.first_letter
+            "#
         )
+        .bind(&new_term.title)
+        .bind(&new_term.description)
+        .bind(&new_term.first_letter)
         .execute(conn)
         .await?;
 
@@ -138,7 +177,7 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" title = ?"));
+            query.push_str(" title = ?");
             params.push(title.clone());
             param_index += 1;
         }
@@ -147,7 +186,7 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" description = ?"));
+            query.push_str(" description = ?");
             params.push(description.clone());
             param_index += 1;
         }
@@ -156,7 +195,7 @@ impl Term {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" first_letter = ?"));
+            query.push_str(" first_letter = ?");
             params.push(first_letter.clone());
             param_index += 1;
         }
@@ -167,7 +206,7 @@ impl Term {
         }
 
         // Add the WHERE clause
-        query.push_str(&format!(" WHERE id = ?"));
+        query.push_str(" WHERE id = ?");
         params.push(update_term.id.to_string());
 
         // Use sqlx::query to execute the dynamic query
@@ -176,7 +215,6 @@ impl Term {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Pass the connection correctly
         let result = query_builder.execute(conn).await?;
 
         Ok(result.rows_affected() > 0)
@@ -185,7 +223,8 @@ impl Term {
     pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
         let conn = db.get_conn();
         
-        let result = sqlx::query!("DELETE FROM Term WHERE id = ?", id)
+        let result = sqlx::query("DELETE FROM Term WHERE id = ?")
+            .bind(id)
             .execute(conn)
             .await?;
         
@@ -197,18 +236,32 @@ impl Term {
         
         let search_query = format!("%{}%", query);
 
-        let terms = sqlx::query_as!(
-            Term,
+        // Use a simpler query to avoid type conversion issues
+        let rows = sqlx::query(
             r#"
-            SELECT id as "id: u32", title, description, first_letter, created
+            SELECT id, title, description, first_letter, created
             FROM Term 
             WHERE title LIKE ? OR description LIKE ?
             ORDER BY title
-            "#,
-            search_query, search_query
+            "#
         )
+        .bind(&search_query)
+        .bind(&search_query)
         .fetch_all(conn)
         .await?;
+
+        let terms = rows
+            .into_iter()
+            .map(|row| {
+                Term {
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    description: row.get("description"),
+                    first_letter: row.get("first_letter"),
+                    created: row.get("created"),
+                }
+            })
+            .collect();
 
         Ok(terms)
     }

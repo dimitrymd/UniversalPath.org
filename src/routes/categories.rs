@@ -33,7 +33,7 @@ async fn view_category(mut db: Connection<UniversalPathDb>, id: u32) -> Result<T
     };
 
     Ok(Template::render("category", context! {
-        title: category.category.title.as_deref().unwrap_or(&category.category.name),
+        title: &category.category.title,
         category: &category,
         subcategories: &subcategories,
         articles: &articles,

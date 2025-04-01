@@ -21,6 +21,7 @@ pub struct Article {
     pub lasteditedby_userid: u32,
     pub lastedited_date: Option<NaiveDate>,
     pub priority: Option<i32>,
+    #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,
     pub keywords: Option<String>,
@@ -54,6 +55,7 @@ pub struct NewArticle {
     pub txtfield: Option<String>,
     pub copyright: Option<String>,
     pub priority: Option<i32>,
+    #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,
     pub keywords: Option<String>,
@@ -80,6 +82,7 @@ pub struct UpdateArticle {
     pub copyright: Option<String>,
     pub lasteditedby_userid: u32,
     pub priority: Option<i32>,
+    #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,
     pub keywords: Option<String>,
@@ -128,7 +131,7 @@ impl Article {
                 a.resume, a.txtfield, a.copyright, a.lasteditedby_userid, a.lastedited_date, 
                 a.priority, a.type as "type_", a.event_id, a.keywords, a.description, 
                 a.short_title, a.available_on_site, a.available_on_api, a.master, a.new_,
-                u.username as author_name, c.name as category_name
+                u.name as author_name, c.title as category_name
             FROM articles a
             LEFT JOIN users u ON a.author_id = u.id
             LEFT JOIN categories c ON a.category_id = c.id
@@ -186,7 +189,7 @@ impl Article {
                 a.resume, a.txtfield, a.copyright, a.lasteditedby_userid, a.lastedited_date, 
                 a.priority, a.type as "type_", a.event_id, a.keywords, a.description, 
                 a.short_title, a.available_on_site, a.available_on_api, a.master, a.new_,
-                u.username as author_name, c.name as category_name
+                u.name as author_name, c.title as category_name
             FROM articles a
             LEFT JOIN users u ON a.author_id = u.id
             LEFT JOIN categories c ON a.category_id = c.id
@@ -250,7 +253,7 @@ impl Article {
                 a.resume, a.txtfield, a.copyright, a.lasteditedby_userid, a.lastedited_date, 
                 a.priority, a.type as "type_", a.event_id, a.keywords, a.description, 
                 a.short_title, a.available_on_site, a.available_on_api, a.master, a.new_,
-                u.username as author_name, c.name as category_name
+                u.name as author_name, c.title as category_name
             FROM articles a
             LEFT JOIN users u ON a.author_id = u.id
             LEFT JOIN categories c ON a.category_id = c.id
@@ -302,10 +305,11 @@ impl Article {
         Ok(articles)
     }
 
-    pub async fn find_by_tag(db: &mut Connection<UniversalPathDb>, tag_id: u32, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
+    pub async fn search(db: &mut Connection<UniversalPathDb>, query: &str, limit: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
         let conn = db.get_conn();
-        let limit = limit.unwrap_or(100);
-        let offset = offset.unwrap_or(0);
+        
+        let limit = limit.unwrap_or(20);
+        let search_query = format!("%{}%", query);
 
         let results = sqlx::query!(
             r#"
@@ -314,16 +318,16 @@ impl Article {
                 a.resume, a.txtfield, a.copyright, a.lasteditedby_userid, a.lastedited_date, 
                 a.priority, a.type as "type_", a.event_id, a.keywords, a.description, 
                 a.short_title, a.available_on_site, a.available_on_api, a.master, a.new_,
-                u.username as author_name, c.name as category_name
+                u.name as author_name, c.title as category_name
             FROM articles a
             LEFT JOIN users u ON a.author_id = u.id
             LEFT JOIN categories c ON a.category_id = c.id
-            JOIN Article_has_Tag aht ON a.id = aht.article_id
-            WHERE aht.tag_id = ? AND a.available_on_site = 1
+            WHERE a.available_on_site = 1 AND 
+                  (a.title LIKE ? OR a.resume LIKE ? OR a.txtfield LIKE ? OR a.keywords LIKE ?)
             ORDER BY a.priority DESC, a.publish_date DESC, a.id DESC
-            LIMIT ? OFFSET ?
+            LIMIT ?
             "#,
-            tag_id, limit, offset
+            search_query, search_query, search_query, search_query, limit
         )
         .fetch_all(conn)
         .await?;
@@ -558,71 +562,5 @@ impl Article {
             .await?;
         
         Ok(result.rows_affected() > 0)
-    }
-
-    pub async fn search(db: &mut Connection<UniversalPathDb>, query: &str, limit: Option<u32>) -> Result<Vec<ArticleWithAuthor>> {
-        let conn = db.get_conn();
-        
-        let limit = limit.unwrap_or(20);
-        let search_query = format!("%{}%", query);
-
-        let results = sqlx::query!(
-            r#"
-            SELECT 
-                a.id, a.title, a.release_date, a.publish_date, a.author_id, a.note, a.category_id, 
-                a.resume, a.txtfield, a.copyright, a.lasteditedby_userid, a.lastedited_date, 
-                a.priority, a.type as "type_", a.event_id, a.keywords, a.description, 
-                a.short_title, a.available_on_site, a.available_on_api, a.master, a.new_,
-                u.username as author_name, c.name as category_name
-            FROM articles a
-            LEFT JOIN users u ON a.author_id = u.id
-            LEFT JOIN categories c ON a.category_id = c.id
-            WHERE a.available_on_site = 1 AND 
-                  (a.title LIKE ? OR a.resume LIKE ? OR a.txtfield LIKE ? OR a.keywords LIKE ?)
-            ORDER BY a.priority DESC, a.publish_date DESC, a.id DESC
-            LIMIT ?
-            "#,
-            search_query, search_query, search_query, search_query, limit
-        )
-        .fetch_all(conn)
-        .await?;
-
-        let articles = results
-            .into_iter()
-            .map(|row| {
-                let article = Article {
-                    id: row.id,
-                    title: row.title,
-                    release_date: row.release_date,
-                    publish_date: row.publish_date,
-                    author_id: row.author_id,
-                    note: row.note,
-                    category_id: row.category_id,
-                    resume: row.resume,
-                    txtfield: row.txtfield,
-                    copyright: row.copyright,
-                    lasteditedby_userid: row.lasteditedby_userid,
-                    lastedited_date: row.lastedited_date,
-                    priority: row.priority,
-                    type_: row.type_,
-                    event_id: row.event_id,
-                    keywords: row.keywords,
-                    description: row.description,
-                    short_title: row.short_title,
-                    available_on_site: row.available_on_site != 0,
-                    available_on_api: row.available_on_api != 0,
-                    master: row.master != 0,
-                    new_: row.new_ != 0,
-                };
-
-                ArticleWithAuthor {
-                    article,
-                    author_name: row.author_name,
-                    category_name: row.category_name,
-                }
-            })
-            .collect();
-
-        Ok(articles)
     }
 }

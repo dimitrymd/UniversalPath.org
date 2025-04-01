@@ -33,7 +33,7 @@ pub async fn generate_breadcrumbs(
             let is_last = i == category_path.len() - 1 && article_id.is_none();
             
             breadcrumbs.push(Breadcrumb {
-                title: category.title.clone().unwrap_or_else(|| category.name.clone()),
+                title: category.title.clone(),
                 url: format!("/category/{}", category.id),
                 is_last,
             });

@@ -3,31 +3,29 @@ use rocket_db_pools::{sqlx, Connection};
 use crate::db::UniversalPathDb;
 use crate::db::connection::ConnectionExt;
 use anyhow::Result;
+use sqlx::Row; 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct Category {
     pub id: u32,
-    pub name: String,
-    pub title: Option<String>,
-    pub parent_id: Option<u32>,
-    pub root_id: Option<u32>,
-    pub level: i32,
-    pub url: Option<String>,
-    pub preview: Option<String>,
-    pub description: Option<String>,
-    pub keywords: Option<String>,
-    pub created: Option<chrono::NaiveDateTime>,
-    pub available: Option<bool>,
-    pub text: Option<String>,
-    pub redirect: Option<String>,
+    pub title: String,
+    pub note: Option<String>,
+    pub intro: Option<String>,
+    pub sub: Option<String>,
     pub priority: Option<i32>,
+    pub keywords: Option<String>,
+    pub description: Option<String>,
+    pub role: Option<String>,
+    pub master: bool,
+    pub short_title: Option<String>,
+    pub available_on_site: bool,
+    pub available_on_api: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CategoryWithCounts {
-    #[serde(flatten)]
     pub category: Category,
     pub article_count: i64,
     pub subcategory_count: i64,
@@ -36,7 +34,6 @@ pub struct CategoryWithCounts {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CategoryTreeItem {
-    #[serde(flatten)]
     pub category: CategoryWithCounts,
     pub children: Vec<CategoryTreeItem>,
 }
@@ -44,99 +41,118 @@ pub struct CategoryTreeItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct NewCategory {
-    pub name: String,
-    pub title: Option<String>,
-    pub parent_id: Option<u32>,
-    pub url: Option<String>,
-    pub preview: Option<String>,
-    pub description: Option<String>,
-    pub keywords: Option<String>,
-    pub available: Option<bool>,
-    pub text: Option<String>,
-    pub redirect: Option<String>,
+    pub title: String,
+    pub note: Option<String>,
+    pub intro: Option<String>,
+    pub sub: Option<String>,
     pub priority: Option<i32>,
+    pub keywords: Option<String>,
+    pub description: Option<String>,
+    pub role: Option<String>,
+    pub master: bool,
+    pub short_title: Option<String>,
+    pub available_on_site: bool,
+    pub available_on_api: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct UpdateCategory {
     pub id: u32,
-    pub name: Option<String>,
     pub title: Option<String>,
-    pub parent_id: Option<u32>,
-    pub url: Option<String>,
-    pub preview: Option<String>,
-    pub description: Option<String>,
-    pub keywords: Option<String>,
-    pub available: Option<bool>,
-    pub text: Option<String>,
-    pub redirect: Option<String>,
+    pub note: Option<String>,
+    pub intro: Option<String>,
+    pub sub: Option<String>,
     pub priority: Option<i32>,
+    pub keywords: Option<String>,
+    pub description: Option<String>,
+    pub role: Option<String>,
+    pub master: Option<bool>,
+    pub short_title: Option<String>,
+    pub available_on_site: Option<bool>,
+    pub available_on_api: Option<bool>,
 }
 
 impl Category {
     pub async fn find_by_id(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<Category>> {
         let conn = db.get_conn();
         
-        let category = sqlx::query_as!(
-            Category,
+        // Use a simpler query approach with explicit typing
+        let row = sqlx::query(
             r#"
             SELECT 
-                id, name, title, parent_id, root_id, level, url, preview, 
-                description, keywords, created, available, text, redirect, priority
+                id, title, note, intro, sub, priority, keywords, description,
+                role, master, short_title, available_on_site, available_on_api
             FROM categories 
-            WHERE id = ? AND (available = 1 OR available IS NULL)
-            "#,
-            id
+            WHERE id = ? AND (available_on_site = 1 OR available_on_site IS NULL)
+            "#
         )
+        .bind(id)
         .fetch_optional(conn)
         .await?;
 
-        Ok(category)
+        match row {
+            Some(row) => {
+                Ok(Some(Category {
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    note: row.get("note"),
+                    intro: row.get("intro"),
+                    sub: row.get("sub"),
+                    priority: row.get::<Option<i32>, _>("priority"),
+                    keywords: row.get("keywords"),
+                    description: row.get("description"),
+                    role: row.get("role"),
+                    master: row.get::<i32, _>("master") > 0,
+                    short_title: row.get("short_title"),
+                    available_on_site: row.get::<i32, _>("available_on_site") > 0,
+                    available_on_api: row.get::<i32, _>("available_on_api") > 0,
+                }))
+            }
+            None => Ok(None),
+        }
     }
 
     pub async fn find_by_id_with_counts(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Option<CategoryWithCounts>> {
         let conn = db.get_conn();
         
-        let result = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT 
-                c.id, c.name, c.title, c.parent_id, c.root_id, c.level, c.url, c.preview, 
-                c.description, c.keywords, c.created, c.available, c.text, c.redirect, c.priority,
+                c.id, c.title, c.note, c.intro, c.sub, c.priority, c.keywords, c.description,
+                c.role, c.master, c.short_title, c.available_on_site, c.available_on_api,
                 (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id AND a.available_on_site = 1) as article_count,
-                (SELECT COUNT(*) FROM categories sub WHERE sub.parent_id = c.id AND (sub.available = 1 OR sub.available IS NULL)) as subcategory_count
+                (SELECT COUNT(*) FROM categories_has_categories chc WHERE chc.parent_id = c.id) as subcategory_count
             FROM categories c
-            WHERE c.id = ? AND (c.available = 1 OR c.available IS NULL)
-            "#,
-            id
+            WHERE c.id = ? AND (c.available_on_site = 1 OR c.available_on_site IS NULL)
+            "#
         )
+        .bind(id)
         .fetch_optional(conn)
         .await?;
 
-        match result {
+        match row {
             Some(row) => {
                 let category = Category {
-                    id: row.id,
-                    name: row.name,
-                    title: row.title,
-                    parent_id: row.parent_id,
-                    root_id: row.root_id,
-                    level: row.level,
-                    url: row.url,
-                    preview: row.preview,
-                    description: row.description,
-                    keywords: row.keywords,
-                    created: row.created,
-                    available: row.available.map(|v| v != 0),
-                    text: row.text,
-                    redirect: row.redirect,
-                    priority: row.priority,
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    note: row.get("note"),
+                    intro: row.get("intro"),
+                    sub: row.get("sub"),
+                    priority: row.get::<Option<i32>, _>("priority"),
+                    keywords: row.get("keywords"),
+                    description: row.get("description"),
+                    role: row.get("role"),
+                    master: row.get::<i32, _>("master") > 0,
+                    short_title: row.get("short_title"),
+                    available_on_site: row.get::<i32, _>("available_on_site") > 0,
+                    available_on_api: row.get::<i32, _>("available_on_api") > 0,
                 };
 
                 Ok(Some(CategoryWithCounts {
                     category,
-                    article_count: row.article_count.unwrap_or(0),
-                    subcategory_count: row.subcategory_count.unwrap_or(0),
+                    article_count: row.get::<i64, _>("article_count"),
+                    subcategory_count: row.get::<i64, _>("subcategory_count"),
                 }))
             }
             None => Ok(None),
@@ -146,46 +162,46 @@ impl Category {
     pub async fn find_root_categories(db: &mut Connection<UniversalPathDb>) -> Result<Vec<CategoryWithCounts>> {
         let conn = db.get_conn();
         
-        let results = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT 
-                c.id, c.name, c.title, c.parent_id, c.root_id, c.level, c.url, c.preview, 
-                c.description, c.keywords, c.created, c.available, c.text, c.redirect, c.priority,
+                c.id, c.title, c.note, c.intro, c.sub, c.priority, c.keywords, c.description,
+                c.role, c.master, c.short_title, c.available_on_site, c.available_on_api,
                 (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id AND a.available_on_site = 1) as article_count,
-                (SELECT COUNT(*) FROM categories sub WHERE sub.parent_id = c.id AND (sub.available = 1 OR sub.available IS NULL)) as subcategory_count
+                (SELECT COUNT(*) FROM categories_has_categories chc WHERE chc.parent_id = c.id) as subcategory_count
             FROM categories c
-            WHERE c.parent_id IS NULL AND (c.available = 1 OR c.available IS NULL)
-            ORDER BY c.priority DESC, c.name
+            WHERE c.id NOT IN (
+                SELECT child_id1 FROM categories_has_categories
+            ) AND (c.available_on_site = 1 OR c.available_on_site IS NULL)
+            ORDER BY c.priority DESC, c.title
             "#
         )
         .fetch_all(conn)
         .await?;
 
-        let categories = results
+        let categories = rows
             .into_iter()
             .map(|row| {
                 let category = Category {
-                    id: row.id,
-                    name: row.name,
-                    title: row.title,
-                    parent_id: row.parent_id,
-                    root_id: row.root_id,
-                    level: row.level,
-                    url: row.url,
-                    preview: row.preview,
-                    description: row.description,
-                    keywords: row.keywords,
-                    created: row.created,
-                    available: row.available.map(|v| v != 0),
-                    text: row.text,
-                    redirect: row.redirect,
-                    priority: row.priority,
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    note: row.get("note"),
+                    intro: row.get("intro"),
+                    sub: row.get("sub"),
+                    priority: row.get::<Option<i32>, _>("priority"),
+                    keywords: row.get("keywords"),
+                    description: row.get("description"),
+                    role: row.get("role"),
+                    master: row.get::<i32, _>("master") > 0,
+                    short_title: row.get("short_title"),
+                    available_on_site: row.get::<i32, _>("available_on_site") > 0,
+                    available_on_api: row.get::<i32, _>("available_on_api") > 0,
                 };
 
                 CategoryWithCounts {
                     category,
-                    article_count: row.article_count.unwrap_or(0),
-                    subcategory_count: row.subcategory_count.unwrap_or(0),
+                    article_count: row.get::<i64, _>("article_count"),
+                    subcategory_count: row.get::<i64, _>("subcategory_count"),
                 }
             })
             .collect();
@@ -196,47 +212,46 @@ impl Category {
     pub async fn find_subcategories(db: &mut Connection<UniversalPathDb>, parent_id: u32) -> Result<Vec<CategoryWithCounts>> {
         let conn = db.get_conn();
         
-        let results = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT 
-                c.id, c.name, c.title, c.parent_id, c.root_id, c.level, c.url, c.preview, 
-                c.description, c.keywords, c.created, c.available, c.text, c.redirect, c.priority,
+                c.id, c.title, c.note, c.intro, c.sub, c.priority, c.keywords, c.description,
+                c.role, c.master, c.short_title, c.available_on_site, c.available_on_api,
                 (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id AND a.available_on_site = 1) as article_count,
-                (SELECT COUNT(*) FROM categories sub WHERE sub.parent_id = c.id AND (sub.available = 1 OR sub.available IS NULL)) as subcategory_count
+                (SELECT COUNT(*) FROM categories_has_categories subchc WHERE subchc.parent_id = c.id) as subcategory_count
             FROM categories c
-            WHERE c.parent_id = ? AND (c.available = 1 OR c.available IS NULL)
-            ORDER BY c.priority DESC, c.name
-            "#,
-            parent_id
+            JOIN categories_has_categories chc ON chc.child_id1 = c.id
+            WHERE chc.parent_id = ? AND (c.available_on_site = 1 OR c.available_on_site IS NULL)
+            ORDER BY chc.priority IS NULL, chc.priority ASC, c.priority DESC, c.title
+            "#
         )
+        .bind(parent_id)
         .fetch_all(conn)
         .await?;
 
-        let categories = results
+        let categories = rows
             .into_iter()
             .map(|row| {
                 let category = Category {
-                    id: row.id,
-                    name: row.name,
-                    title: row.title,
-                    parent_id: row.parent_id,
-                    root_id: row.root_id,
-                    level: row.level,
-                    url: row.url,
-                    preview: row.preview,
-                    description: row.description,
-                    keywords: row.keywords,
-                    created: row.created,
-                    available: row.available.map(|v| v != 0),
-                    text: row.text,
-                    redirect: row.redirect,
-                    priority: row.priority,
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    note: row.get("note"),
+                    intro: row.get("intro"),
+                    sub: row.get("sub"),
+                    priority: row.get::<Option<i32>, _>("priority"),
+                    keywords: row.get("keywords"),
+                    description: row.get("description"),
+                    role: row.get("role"),
+                    master: row.get::<i32, _>("master") > 0,
+                    short_title: row.get("short_title"),
+                    available_on_site: row.get::<i32, _>("available_on_site") > 0,
+                    available_on_api: row.get::<i32, _>("available_on_api") > 0,
                 };
 
                 CategoryWithCounts {
                     category,
-                    article_count: row.article_count.unwrap_or(0),
-                    subcategory_count: row.subcategory_count.unwrap_or(0),
+                    article_count: row.get::<i64, _>("article_count"),
+                    subcategory_count: row.get::<i64, _>("subcategory_count"),
                 }
             })
             .collect();
@@ -246,14 +261,36 @@ impl Category {
 
     pub async fn build_category_path(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<Vec<Category>> {
         let mut path = Vec::new();
-        let mut current_id = Some(id);
-
-        while let Some(id) = current_id {
-            if let Some(category) = Self::find_by_id(db, id).await? {
-                current_id = category.parent_id;
-                path.push(category);
-            } else {
-                current_id = None;
+        
+        // First get the current category
+        if let Some(category) = Self::find_by_id(db, id).await? {
+            path.push(category);
+            
+            // Then trace upwards through parents
+            let mut current_id = id;
+            let mut more_parents = true;
+            
+            while more_parents {
+                // Get the parent ID for the current category
+                let parent_id_result = sqlx::query("SELECT parent_id FROM categories_has_categories WHERE child_id1 = ?")
+                    .bind(current_id)
+                    .fetch_optional(db.get_conn())
+                    .await?;
+                
+                match parent_id_result {
+                    Some(row) => {
+                        let parent_id: u32 = row.get("parent_id");
+                        
+                        // Get the parent category
+                        if let Some(parent_category) = Self::find_by_id(db, parent_id).await? {
+                            path.push(parent_category);
+                            current_id = parent_id;
+                        } else {
+                            more_parents = false;
+                        }
+                    },
+                    None => more_parents = false
+                }
             }
         }
 
@@ -264,38 +301,26 @@ impl Category {
     pub async fn create(db: &mut Connection<UniversalPathDb>, new_category: NewCategory) -> Result<u32> {
         let conn = db.get_conn();
         
-        // Calculate level and root_id based on parent_id
-        let (level, root_id) = if let Some(parent_id) = new_category.parent_id {
-            if let Some(parent) = Self::find_by_id(db, parent_id).await? {
-                (parent.level + 1, parent.root_id.or(Some(parent.id)))
-            } else {
-                (0, None)
-            }
-        } else {
-            (0, None)
-        };
-
         let result = sqlx::query!(
             r#"
             INSERT INTO categories 
-            (name, title, parent_id, root_id, level, url, preview, description,
-             keywords, created, available, text, redirect, priority)
+            (title, note, intro, sub, priority, keywords, description,
+            role, master, short_title, available_on_site, available_on_api)
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
-            new_category.name,
             new_category.title,
-            new_category.parent_id,
-            root_id,
-            level,
-            new_category.url,
-            new_category.preview,
-            new_category.description,
+            new_category.note,
+            new_category.intro,
+            new_category.sub,
+            new_category.priority,
             new_category.keywords,
-            new_category.available,
-            new_category.text,
-            new_category.redirect,
-            new_category.priority
+            new_category.description,
+            new_category.role,
+            new_category.master,
+            new_category.short_title,
+            new_category.available_on_site,
+            new_category.available_on_api
         )
         .execute(conn)
         .await?;
@@ -306,125 +331,43 @@ impl Category {
     pub async fn update(db: &mut Connection<UniversalPathDb>, update_category: UpdateCategory) -> Result<bool> {
         let conn = db.get_conn();
         
-        // If parent_id is changing, we need to recalculate level and root_id
-        let (level, root_id) = if let Some(parent_id) = update_category.parent_id {
-            if let Some(parent) = Self::find_by_id(db, parent_id).await? {
-                (Some(parent.level + 1), parent.root_id.or(Some(parent.id)))
-            } else {
-                // If parent not found but parent_id provided, use defaults
-                (Some(0), None)
-            }
-        } else if update_category.parent_id.is_some() {
-            // Parent explicitly set to NULL
-            (Some(0), None)
-        } else {
-            // Parent not changing
-            (None, None)
-        };
-
         let mut query = String::from("UPDATE categories SET");
         let mut params = Vec::new();
         let mut param_index = 1;
-
-        if let Some(name) = &update_category.name {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" name = ?"));
-            params.push(name.clone());
-            param_index += 1;
-        }
 
         if let Some(title) = &update_category.title {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" title = ?"));
+            query.push_str(" title = ?");
             params.push(title.clone());
             param_index += 1;
         }
 
-        if update_category.parent_id.is_some() {
+        if let Some(note) = &update_category.note {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" parent_id = ?"));
-            params.push(update_category.parent_id.unwrap().to_string());
-            param_index += 1;
-
-            if let Some(lvl) = level {
-                query.push_str(&format!(", level = ?"));
-                params.push(lvl.to_string());
-                param_index += 1;
-            }
-
-            if let Some(rt) = root_id {
-                query.push_str(&format!(", root_id = ?"));
-                params.push(rt.to_string());
-                param_index += 1;
-            }
-        }
-
-        if let Some(url) = &update_category.url {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" url = ?"));
-            params.push(url.clone());
+            query.push_str(" note = ?");
+            params.push(note.clone());
             param_index += 1;
         }
 
-        if let Some(preview) = &update_category.preview {
+        if let Some(intro) = &update_category.intro {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" preview = ?"));
-            params.push(preview.clone());
+            query.push_str(" intro = ?");
+            params.push(intro.clone());
             param_index += 1;
         }
 
-        if let Some(description) = &update_category.description {
+        if let Some(sub) = &update_category.sub {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" description = ?"));
-            params.push(description.clone());
-            param_index += 1;
-        }
-
-        if let Some(keywords) = &update_category.keywords {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" keywords = ?"));
-            params.push(keywords.clone());
-            param_index += 1;
-        }
-
-        if let Some(available) = &update_category.available {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" available = ?"));
-            params.push(available.to_string());
-            param_index += 1;
-        }
-
-        if let Some(text) = &update_category.text {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" text = ?"));
-            params.push(text.clone());
-            param_index += 1;
-        }
-
-        if let Some(redirect) = &update_category.redirect {
-            if param_index > 1 {
-                query.push_str(",");
-            }
-            query.push_str(&format!(" redirect = ?"));
-            params.push(redirect.clone());
+            query.push_str(" sub = ?");
+            params.push(sub.clone());
             param_index += 1;
         }
 
@@ -432,8 +375,71 @@ impl Category {
             if param_index > 1 {
                 query.push_str(",");
             }
-            query.push_str(&format!(" priority = ?"));
+            query.push_str(" priority = ?");
             params.push(priority.to_string());
+            param_index += 1;
+        }
+
+        if let Some(keywords) = &update_category.keywords {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" keywords = ?");
+            params.push(keywords.clone());
+            param_index += 1;
+        }
+
+        if let Some(description) = &update_category.description {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" description = ?");
+            params.push(description.clone());
+            param_index += 1;
+        }
+
+        if let Some(role) = &update_category.role {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" role = ?");
+            params.push(role.clone());
+            param_index += 1;
+        }
+
+        if let Some(master) = &update_category.master {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" master = ?");
+            params.push(master.to_string());
+            param_index += 1;
+        }
+
+        if let Some(short_title) = &update_category.short_title {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" short_title = ?");
+            params.push(short_title.clone());
+            param_index += 1;
+        }
+
+        if let Some(available_on_site) = &update_category.available_on_site {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" available_on_site = ?");
+            params.push(available_on_site.to_string());
+            param_index += 1;
+        }
+
+        if let Some(available_on_api) = &update_category.available_on_api {
+            if param_index > 1 {
+                query.push_str(",");
+            }
+            query.push_str(" available_on_api = ?");
+            params.push(available_on_api.to_string());
             param_index += 1;
         }
 
@@ -443,7 +449,7 @@ impl Category {
         }
 
         // Add the WHERE clause
-        query.push_str(&format!(" WHERE id = ?"));
+        query.push_str(" WHERE id = ?");
         params.push(update_category.id.to_string());
 
         // Use sqlx::query to execute the dynamic query
@@ -452,85 +458,44 @@ impl Category {
             query_builder = query_builder.bind(param);
         }
 
-        // Fix: Pass the connection correctly
         let result = query_builder.execute(conn).await?;
-        
-        // Update also requires updating all subcategories' level and root_id if parent_id changed
-        if update_category.parent_id.is_some() {
-            Self::update_subcategories_hierarchy(db, update_category.id).await?;
-        }
 
         Ok(result.rows_affected() > 0)
     }
 
-    async fn update_subcategories_hierarchy(db: &mut Connection<UniversalPathDb>, parent_id: u32) -> Result<()> {
-        let conn = db.get_conn();
-        
-        // Get the parent to determine its level and root_id
-        if let Some(parent) = Self::find_by_id(db, parent_id).await? {
-            let parent_level = parent.level;
-            let parent_root_id = parent.root_id.unwrap_or(parent.id);
-
-            // Find all direct subcategories
-            let subcategories = sqlx::query!(
-                "SELECT id FROM categories WHERE parent_id = ?",
-                parent_id
-            )
-            .fetch_all(conn)
+    pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
+        // Check for subcategories first
+        let subcategories_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM categories_has_categories WHERE parent_id = ?")
+            .bind(id)
+            .fetch_one(db.get_conn())
             .await?;
 
-            // Update each subcategory
-            for subcategory in subcategories {
-                // Update the current subcategory
-                sqlx::query!(
-                    "UPDATE categories SET level = ?, root_id = ? WHERE id = ?",
-                    parent_level + 1,
-                    parent_root_id,
-                    subcategory.id
-                )
-                .execute(conn)
-                .await?;
-
-                // Recursively update its subcategories
-                Self::update_subcategories_hierarchy(db, subcategory.id).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub async fn delete(db: &mut Connection<UniversalPathDb>, id: u32) -> Result<bool> {
-        let conn = db.get_conn();
-        
-        // Check for subcategories first
-        let subcategories = sqlx::query!(
-            "SELECT COUNT(*) as count FROM categories WHERE parent_id = ?",
-            id
-        )
-        .fetch_one(conn)
-        .await?;
-
-        if subcategories.count > 0 {
+        if subcategories_count > 0 {
             // Cannot delete a category with subcategories
             return Ok(false);
         }
 
         // Check for articles
-        let articles = sqlx::query!(
-            "SELECT COUNT(*) as count FROM articles WHERE category_id = ?",
-            id
-        )
-        .fetch_one(conn)
-        .await?;
+        let articles_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM articles WHERE category_id = ?")
+            .bind(id)
+            .fetch_one(db.get_conn())
+            .await?;
 
-        if articles.count > 0 {
+        if articles_count > 0 {
             // Cannot delete a category with articles
             return Ok(false);
         }
 
+        // Delete any relationships where this is a child
+        sqlx::query("DELETE FROM categories_has_categories WHERE child_id1 = ?")
+            .bind(id)
+            .execute(db.get_conn())
+            .await?;
+
         // Delete the category
-        let result = sqlx::query!("DELETE FROM categories WHERE id = ?", id)
-            .execute(conn)
+        let result = sqlx::query("DELETE FROM categories WHERE id = ?")
+            .bind(id)
+            .execute(db.get_conn())
             .await?;
 
         Ok(result.rows_affected() > 0)
@@ -542,49 +507,50 @@ impl Category {
         let limit = limit.unwrap_or(20);
         let search_query = format!("%{}%", query);
 
-        let results = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT 
-                c.id, c.name, c.title, c.parent_id, c.root_id, c.level, c.url, c.preview, 
-                c.description, c.keywords, c.created, c.available, c.text, c.redirect, c.priority,
+                c.id, c.title, c.note, c.intro, c.sub, c.priority, c.keywords, c.description,
+                c.role, c.master, c.short_title, c.available_on_site, c.available_on_api,
                 (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id AND a.available_on_site = 1) as article_count,
-                (SELECT COUNT(*) FROM categories sub WHERE sub.parent_id = c.id AND (sub.available = 1 OR sub.available IS NULL)) as subcategory_count
+                (SELECT COUNT(*) FROM categories_has_categories chc WHERE chc.parent_id = c.id) as subcategory_count
             FROM categories c
-            WHERE (c.available = 1 OR c.available IS NULL) AND 
-                  (c.name LIKE ? OR c.title LIKE ? OR c.description LIKE ? OR c.keywords LIKE ?)
-            ORDER BY c.priority DESC, c.name
+            WHERE (c.available_on_site = 1 OR c.available_on_site IS NULL) AND 
+                  (c.title LIKE ? OR c.description LIKE ? OR c.keywords LIKE ?)
+            ORDER BY c.priority DESC, c.title
             LIMIT ?
-            "#,
-            search_query, search_query, search_query, search_query, limit
+            "#
         )
+        .bind(&search_query)
+        .bind(&search_query)
+        .bind(&search_query)
+        .bind(limit)
         .fetch_all(conn)
         .await?;
 
-        let categories = results
+        let categories = rows
             .into_iter()
             .map(|row| {
                 let category = Category {
-                    id: row.id,
-                    name: row.name,
-                    title: row.title,
-                    parent_id: row.parent_id,
-                    root_id: row.root_id,
-                    level: row.level,
-                    url: row.url,
-                    preview: row.preview,
-                    description: row.description,
-                    keywords: row.keywords,
-                    created: row.created,
-                    available: row.available.map(|v| v != 0),
-                    text: row.text,
-                    redirect: row.redirect,
-                    priority: row.priority,
+                    id: row.get::<u32, _>("id"),
+                    title: row.get("title"),
+                    note: row.get("note"),
+                    intro: row.get("intro"),
+                    sub: row.get("sub"),
+                    priority: row.get::<Option<i32>, _>("priority"),
+                    keywords: row.get("keywords"),
+                    description: row.get("description"),
+                    role: row.get("role"),
+                    master: row.get::<i32, _>("master") > 0,
+                    short_title: row.get("short_title"),
+                    available_on_site: row.get::<i32, _>("available_on_site") > 0,
+                    available_on_api: row.get::<i32, _>("available_on_api") > 0,
                 };
 
                 CategoryWithCounts {
                     category,
-                    article_count: row.article_count.unwrap_or(0),
-                    subcategory_count: row.subcategory_count.unwrap_or(0),
+                    article_count: row.get::<i64, _>("article_count"),
+                    subcategory_count: row.get::<i64, _>("subcategory_count"),
                 }
             })
             .collect();
@@ -593,20 +559,75 @@ impl Category {
     }
 
     pub async fn build_tree(db: &mut Connection<UniversalPathDb>, parent_id: Option<u32>) -> Result<Vec<CategoryTreeItem>> {
-        let categories = match parent_id {
-            Some(id) => Self::find_subcategories(db, id).await?,
-            None => Self::find_root_categories(db).await?,
-        };
-
-        let mut tree = Vec::new();
-        for category in categories {
-            let children = Self::build_tree(db, Some(category.category.id)).await?;
-            tree.push(CategoryTreeItem {
-                category,
-                children,
-            });
+        match parent_id {
+            Some(id) => {
+                let categories = Self::find_subcategories(db, id).await?;
+                
+                let mut tree = Vec::new();
+                for category in categories {
+                    let children = Self::build_tree(db, Some(category.category.id)).await?;
+                    tree.push(CategoryTreeItem {
+                        category,
+                        children,
+                    });
+                }
+                
+                Ok(tree)
+            },
+            None => {
+                let categories = Self::find_root_categories(db).await?;
+                
+                let mut tree = Vec::new();
+                for category in categories {
+                    let children = Self::build_tree(db, Some(category.category.id)).await?;
+                    tree.push(CategoryTreeItem {
+                        category,
+                        children,
+                    });
+                }
+                
+                Ok(tree)
+            }
         }
-
-        Ok(tree)
+    }
+    
+    // Add parent-child relationship
+    pub async fn add_subcategory(db: &mut Connection<UniversalPathDb>, parent_id: u32, child_id: u32, priority: Option<u32>) -> Result<bool> {
+        let conn = db.get_conn();
+        
+        let priority = priority.unwrap_or(0);
+        
+        let result = sqlx::query(
+            r#"
+            INSERT INTO categories_has_categories 
+            (parent_id, child_id1, priority)
+            VALUES (?, ?, ?)
+            "#
+        )
+        .bind(parent_id)
+        .bind(child_id)
+        .bind(priority)
+        .execute(conn)
+        .await?;
+        
+        Ok(result.rows_affected() > 0)
+    }
+    
+    // Remove parent-child relationship
+    pub async fn remove_subcategory(db: &mut Connection<UniversalPathDb>, parent_id: u32, child_id: u32) -> Result<bool> {
+        let conn = db.get_conn();
+        
+        let result = sqlx::query(
+            r#"
+            DELETE FROM categories_has_categories 
+            WHERE parent_id = ? AND child_id1 = ?
+            "#
+        )
+        .bind(parent_id)
+        .bind(child_id)
+        .execute(conn)
+        .await?;
+        
+        Ok(result.rows_affected() > 0)
     }
 }
