@@ -13,7 +13,7 @@ pub struct Category {
     pub note: Option<String>,
     pub intro: Option<String>,
     pub sub: Option<String>,
-    pub priority: Option<i32>,
+    pub priority: Option<u32>,
     pub keywords: Option<String>,
     pub description: Option<String>,
     pub role: Option<String>,
@@ -63,7 +63,7 @@ pub struct UpdateCategory {
     pub note: Option<String>,
     pub intro: Option<String>,
     pub sub: Option<String>,
-    pub priority: Option<i32>,
+    pub priority: Option<u32>,
     pub keywords: Option<String>,
     pub description: Option<String>,
     pub role: Option<String>,
@@ -99,7 +99,7 @@ impl Category {
                     note: row.get("note"),
                     intro: row.get("intro"),
                     sub: row.get("sub"),
-                    priority: row.get::<Option<i32>, _>("priority"),
+                    priority: row.get::<Option<u32>, _>("priority"),
                     keywords: row.get("keywords"),
                     description: row.get("description"),
                     role: row.get("role"),
@@ -139,7 +139,7 @@ impl Category {
                     note: row.get("note"),
                     intro: row.get("intro"),
                     sub: row.get("sub"),
-                    priority: row.get::<Option<i32>, _>("priority"),
+                    priority: row.get::<Option<u32>, _>("priority"),
                     keywords: row.get("keywords"),
                     description: row.get("description"),
                     role: row.get("role"),
@@ -188,7 +188,7 @@ impl Category {
                     note: row.get("note"),
                     intro: row.get("intro"),
                     sub: row.get("sub"),
-                    priority: row.get::<Option<i32>, _>("priority"),
+                    priority: row.get::<Option<u32>, _>("priority"),
                     keywords: row.get("keywords"),
                     description: row.get("description"),
                     role: row.get("role"),
@@ -238,7 +238,7 @@ impl Category {
                     note: row.get("note"),
                     intro: row.get("intro"),
                     sub: row.get("sub"),
-                    priority: row.get::<Option<i32>, _>("priority"),
+                    priority: row.get::<Option<u32>, _>("priority"),
                     keywords: row.get("keywords"),
                     description: row.get("description"),
                     role: row.get("role"),
@@ -537,11 +537,11 @@ impl Category {
                     note: row.get("note"),
                     intro: row.get("intro"),
                     sub: row.get("sub"),
-                    priority: row.get::<Option<i32>, _>("priority"),
+                    priority: row.get::<Option<u32>, _>("priority"),
                     keywords: row.get("keywords"),
                     description: row.get("description"),
                     role: row.get("role"),
-                    master: row.get::<i32, _>("master") > 0,
+                    master: row.get::<u32, _>("master") > 0,
                     short_title: row.get("short_title"),
                     available_on_site: row.get::<i32, _>("available_on_site") > 0,
                     available_on_api: row.get::<i32, _>("available_on_api") > 0,
@@ -559,36 +559,22 @@ impl Category {
     }
 
     pub async fn build_tree(db: &mut Connection<UniversalPathDb>, parent_id: Option<u32>) -> Result<Vec<CategoryTreeItem>> {
-        match parent_id {
-            Some(id) => {
-                let categories = Self::find_subcategories(db, id).await?;
-                
-                let mut tree = Vec::new();
-                for category in categories {
-                    let children = Self::build_tree(db, Some(category.category.id)).await?;
-                    tree.push(CategoryTreeItem {
-                        category,
-                        children,
-                    });
-                }
-                
-                Ok(tree)
-            },
-            None => {
-                let categories = Self::find_root_categories(db).await?;
-                
-                let mut tree = Vec::new();
-                for category in categories {
-                    let children = Self::build_tree(db, Some(category.category.id)).await?;
-                    tree.push(CategoryTreeItem {
-                        category,
-                        children,
-                    });
-                }
-                
-                Ok(tree)
-            }
+        let categories = match parent_id {
+            Some(id) => Self::find_subcategories(db, id).await?,
+            None => Self::find_root_categories(db).await?,
+        };
+    
+        let mut tree = Vec::new();
+        for category in categories {
+            // Use Box::pin to handle the recursion in async function
+            let children = Box::pin(Self::build_tree(db, Some(category.category.id))).await?;
+            tree.push(CategoryTreeItem {
+                category,
+                children,
+            });
         }
+    
+        Ok(tree)
     }
     
     // Add parent-child relationship

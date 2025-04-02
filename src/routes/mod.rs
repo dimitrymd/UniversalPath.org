@@ -12,6 +12,7 @@ mod categories;
 mod terms;
 mod admin;
 
+// Web routes for the frontend
 pub fn web_routes() -> Vec<Route> {
     let mut routes = Vec::new();
     routes.extend(index::routes());
@@ -21,6 +22,7 @@ pub fn web_routes() -> Vec<Route> {
     routes
 }
 
+// API routes for programmatic access
 pub fn api_routes() -> Vec<Route> {
     let mut routes = Vec::new();
     routes.extend(crate::api::articles::routes());
@@ -30,6 +32,7 @@ pub fn api_routes() -> Vec<Route> {
     routes
 }
 
+// Admin panel routes
 pub fn admin_routes() -> Vec<Route> {
     admin::routes()
 }

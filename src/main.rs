@@ -34,12 +34,38 @@ fn rocket() -> _ {
         println!("Site URL: {}", config::CONFIG.site_url);
     }
 
+    // Mount each module and HTTP method separately to avoid collisions
     rocket::build()
         .attach(Template::fairing())
         .attach(UniversalPathDb::init())
+        // Web routes
         .mount("/", routes::web_routes())
-        .mount("/api", routes::api_routes())
+        
+        // API routes separated by module and HTTP method
+        // Articles module
+        .mount("/api/articles", api::articles::get_routes())
+        .mount("/api/articles", api::articles::post_routes())
+        .mount("/api/articles", api::articles::put_routes())
+        .mount("/api/articles", api::articles::delete_routes())
+        
+        // Categories module
+        .mount("/api/categories", api::categories::get_routes())
+        .mount("/api/categories", api::categories::post_routes())
+        .mount("/api/categories", api::categories::put_routes())
+        .mount("/api/categories", api::categories::delete_routes())
+        
+        // Terms module (the original approach since it works)
+        .mount("/api/terms", api::terms::routes())
+        
+        // Auth module (the original approach since it works)
+        .mount("/api/auth", api::auth::routes())
+        
+        // Admin routes
         .mount("/admin", routes::admin_routes())
+        
+        // Static files
         .mount("/static", FileServer::from("static"))
+        
+        // Error catchers
         .register("/", routes::catchers())
 }

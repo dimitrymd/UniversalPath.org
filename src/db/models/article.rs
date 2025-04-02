@@ -20,7 +20,7 @@ pub struct Article {
     pub copyright: Option<String>,
     pub lasteditedby_userid: u32,
     pub lastedited_date: Option<NaiveDate>,
-    pub priority: Option<i32>,
+    pub priority: Option<u32>,
     #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,
@@ -54,7 +54,7 @@ pub struct NewArticle {
     pub resume: Option<String>,
     pub txtfield: Option<String>,
     pub copyright: Option<String>,
-    pub priority: Option<i32>,
+    pub priority: Option<u32>,
     #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,
@@ -81,7 +81,7 @@ pub struct UpdateArticle {
     pub txtfield: Option<String>,
     pub copyright: Option<String>,
     pub lasteditedby_userid: u32,
-    pub priority: Option<i32>,
+    pub priority: Option<u32>,
     #[serde(rename = "type_")]
     pub type_: Option<String>,
     pub event_id: Option<u32>,

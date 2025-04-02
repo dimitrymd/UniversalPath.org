@@ -5,7 +5,8 @@ use crate::db::{UniversalPathDb, models::{Article, ArticleWithAuthor, NewArticle
 use crate::api::{ApiResponse, ApiError, ApiResult};
 use crate::api::auth::{ApiKey, AdminUser};
 
-#[get("/articles", rank = 1)]
+// GET routes
+#[get("/articles")]
 async fn get_articles(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<ApiResult<Vec<ArticleWithAuthor>>> {
     match Article::find_recent(&mut db, 50).await {
         Ok(articles) => Json(Ok(ApiResponse {
@@ -19,7 +20,7 @@ async fn get_articles(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json
     }
 }
 
-#[get("/articles/<id>", rank = 1)]
+#[get("/articles/<id>")]
 async fn get_article(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<ArticleWithAuthor>> {
     match Article::find_by_id_with_author(&mut db, id).await {
         Ok(Some(article)) => Json(Ok(ApiResponse {
@@ -37,7 +38,7 @@ async fn get_article(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32)
     }
 }
 
-#[get("/articles/category/<id>", rank = 1)]
+#[get("/articles/category/<id>")]
 async fn get_articles_by_category(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<Vec<ArticleWithAuthor>>> {
     match Article::find_by_category(&mut db, id, None, None).await {
         Ok(articles) => Json(Ok(ApiResponse {
@@ -51,7 +52,7 @@ async fn get_articles_by_category(mut db: Connection<UniversalPathDb>, _key: Api
     }
 }
 
-#[get("/articles/search?<q>", rank = 1)]
+#[get("/articles/search?<q>")]
 async fn search_articles(mut db: Connection<UniversalPathDb>, _key: ApiKey, q: String) -> Json<ApiResult<Vec<ArticleWithAuthor>>> {
     match Article::search(&mut db, &q, None).await {
         Ok(articles) => Json(Ok(ApiResponse {
@@ -65,7 +66,8 @@ async fn search_articles(mut db: Connection<UniversalPathDb>, _key: ApiKey, q: S
     }
 }
 
-#[post("/articles", format = "json", data = "<article>", rank = 1)]
+// POST routes
+#[post("/articles", format = "json", data = "<article>")]
 async fn create_article(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -83,7 +85,8 @@ async fn create_article(
     }
 }
 
-#[put("/articles/<id>", format = "json", data = "<article>", rank = 1)]
+// PUT routes
+#[put("/articles/<id>", format = "json", data = "<article>")]
 async fn update_article(
     mut db: Connection<UniversalPathDb>, 
     admin: AdminUser,
@@ -115,7 +118,8 @@ async fn update_article(
     }
 }
 
-#[delete("/articles/<id>", rank = 1)]
+// DELETE routes
+#[delete("/articles/<id>")]
 async fn delete_article(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -142,14 +146,40 @@ async fn delete_article(
     }
 }
 
-pub fn routes() -> Vec<Route> {
+// Export routes separated by HTTP method
+pub fn get_routes() -> Vec<Route> {
     routes![
         get_articles, 
         get_article, 
         get_articles_by_category, 
-        search_articles,
-        create_article,
-        update_article,
+        search_articles
+    ]
+}
+
+pub fn post_routes() -> Vec<Route> {
+    routes![
+        create_article
+    ]
+}
+
+pub fn put_routes() -> Vec<Route> {
+    routes![
+        update_article
+    ]
+}
+
+pub fn delete_routes() -> Vec<Route> {
+    routes![
         delete_article
     ]
+}
+
+// Original function - now just combines all the separate routes
+pub fn routes() -> Vec<Route> {
+    let mut routes = Vec::new();
+    routes.extend(get_routes());
+    routes.extend(post_routes());
+    routes.extend(put_routes());
+    routes.extend(delete_routes());
+    routes
 }

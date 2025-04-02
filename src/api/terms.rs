@@ -5,7 +5,10 @@ use crate::db::{UniversalPathDb, models::{Term, NewTerm, UpdateTerm}};
 use crate::api::{ApiResponse, ApiError, ApiResult};
 use crate::api::auth::{ApiKey, AdminUser};
 
-#[get("/terms", rank = 1)]
+// Note: All these routes will be mounted at /api/terms
+// No rank is needed since they'll be mounted at a different base path than web routes
+
+#[get("/terms")]
 async fn get_terms(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<ApiResult<Vec<Term>>> {
     match Term::find_all(&mut db).await {
         Ok(terms) => Json(Ok(ApiResponse {
@@ -19,7 +22,7 @@ async fn get_terms(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<Ap
     }
 }
 
-#[get("/terms/<id>", rank = 1)]
+#[get("/terms/<id>")]
 async fn get_term(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<Term>> {
     match Term::find_by_id(&mut db, id).await {
         Ok(Some(term)) => Json(Ok(ApiResponse {
@@ -37,7 +40,7 @@ async fn get_term(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) ->
     }
 }
 
-#[get("/terms/letter/<letter>", rank = 1)]
+#[get("/terms/letter/<letter>")]
 async fn get_terms_by_letter(mut db: Connection<UniversalPathDb>, _key: ApiKey, letter: String) -> Json<ApiResult<Vec<Term>>> {
     match Term::find_by_letter(&mut db, &letter).await {
         Ok(terms) => Json(Ok(ApiResponse {
@@ -51,7 +54,7 @@ async fn get_terms_by_letter(mut db: Connection<UniversalPathDb>, _key: ApiKey, 
     }
 }
 
-#[get("/terms/letters", rank = 1)]
+#[get("/terms/letters")]
 async fn get_letters(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<ApiResult<Vec<String>>> {
     match Term::get_all_letters(&mut db).await {
         Ok(letters) => Json(Ok(ApiResponse {
@@ -65,7 +68,7 @@ async fn get_letters(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<
     }
 }
 
-#[get("/terms/search?<q>", rank = 1)]
+#[get("/terms/search?<q>")]
 async fn search_terms(mut db: Connection<UniversalPathDb>, _key: ApiKey, q: String) -> Json<ApiResult<Vec<Term>>> {
     match Term::search(&mut db, &q).await {
         Ok(terms) => Json(Ok(ApiResponse {
@@ -79,7 +82,7 @@ async fn search_terms(mut db: Connection<UniversalPathDb>, _key: ApiKey, q: Stri
     }
 }
 
-#[post("/terms", format = "json", data = "<term>", rank = 1)]
+#[post("/terms", format = "json", data = "<term>")]
 async fn create_term(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -97,7 +100,7 @@ async fn create_term(
     }
 }
 
-#[put("/terms/<id>", format = "json", data = "<term>", rank = 1)]
+#[put("/terms/<id>", format = "json", data = "<term>")]
 async fn update_term(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -128,7 +131,7 @@ async fn update_term(
     }
 }
 
-#[delete("/terms/<id>", rank = 1)]
+#[delete("/terms/<id>")]
 async fn delete_term(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,

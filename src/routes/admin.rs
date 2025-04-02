@@ -207,3 +207,22 @@ pub fn routes() -> Vec<Route> {
         apikeys_page,
     ]
 }
+
+pub fn admin_get_routes() -> Vec<Route> {
+    routes![
+        login_page,
+        logout,
+        dashboard,
+        articles_page,
+        categories_page,
+        terms_page,
+        users_page,
+        apikeys_page
+    ]
+}
+
+pub fn admin_post_routes() -> Vec<Route> {
+    routes![
+        login_submit
+    ]
+}

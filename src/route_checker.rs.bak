@@ -1,0 +1,49 @@
+// src/route_checker.rs
+
+use std::collections::HashMap;
+use rocket::Route;
+
+pub fn check_route_collisions(routes: &[Route]) -> Vec<(String, String, String)> {
+    let mut route_map: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    let mut collisions = Vec::new();
+    
+    for route in routes {
+        let uri = route.uri.to_string();
+        let method = format!("{:?}", route.method);
+        let handler = route.handler.name().unwrap_or("unknown").to_string();
+        
+        route_map.entry(uri.clone())
+            .or_insert_with(Vec::new)
+            .push((method.clone(), handler.clone()));
+        
+        // Check for routes with identical URI and method
+        let routes_at_uri = route_map.get(&uri).unwrap();
+        if routes_at_uri.len() > 1 {
+            for (i, (m1, h1)) in routes_at_uri.iter().enumerate() {
+                for (m2, h2) in routes_at_uri.iter().skip(i + 1) {
+                    if m1 == m2 {
+                        collisions.push((uri.clone(), h1.clone(), h2.clone()));
+                    }
+                }
+            }
+        }
+    }
+    
+    collisions
+}
+
+// Add this to your main.rs before rocket::build()
+pub fn detect_collisions() {
+    let mut all_routes = Vec::new();
+    all_routes.extend(crate::routes::web_routes());
+    all_routes.extend(crate::routes::api_routes());
+    all_routes.extend(crate::routes::admin_routes());
+    
+    let collisions = check_route_collisions(&all_routes);
+    if !collisions.is_empty() {
+        println!("WARNING: Route collisions detected:");
+        for (uri, handler1, handler2) in collisions {
+            println!("URI: {}, Handlers: {} and {}", uri, handler1, handler2);
+        }
+    }
+}

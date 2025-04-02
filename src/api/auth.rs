@@ -96,7 +96,8 @@ impl<'r> FromRequest<'r> for AdminUser {
     }
 }
 
-#[post("/login", format = "json", data = "<login>")]
+// Changed from "/auth/login" to "/login" and added rank = 1
+#[post("/login", format = "json", data = "<login>", rank = 1)]
 async fn login(mut db: Connection<UniversalPathDb>, login: Json<LoginUser>) -> Json<ApiResult<String>> {
     match User::login(&mut db, &login.0).await {
         Ok(Some(user)) => {
@@ -141,22 +142,23 @@ async fn login(mut db: Connection<UniversalPathDb>, login: Json<LoginUser>) -> J
     }
 }
 
-#[get("/verify", rank = 1)]
-async fn verify_token(_admin: AdminUser) -> Json<ApiResult<bool>> {
+// Use different paths for verification
+#[get("/verify/admin")]
+async fn verify_token_admin(_admin: AdminUser) -> Json<ApiResult<bool>> {
     Json(Ok(ApiResponse {
         status: "success".to_string(),
         data: true,
     }))
 }
 
-#[get("/verify", rank = 2)]
-async fn verify_token_fail() -> Json<ApiResult<bool>> {
+#[get("/verify")]
+async fn verify_token_public() -> Json<ApiResult<bool>> {
     Json(Err(ApiError {
         status: "error".to_string(),
-        message: "Invalid or expired token".to_string(),
+        message: "Please provide valid admin credentials".to_string(),
     }))
 }
 
 pub fn routes() -> Vec<Route> {
-    routes![login, verify_token, verify_token_fail]
+    routes![login, verify_token_admin, verify_token_public]
 }

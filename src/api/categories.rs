@@ -5,7 +5,8 @@ use crate::db::{UniversalPathDb, models::{Category, CategoryWithCounts, Category
 use crate::api::{ApiResponse, ApiError, ApiResult};
 use crate::api::auth::{ApiKey, AdminUser};
 
-#[get("/categories", rank = 1)]
+// GET routes
+#[get("/categories")]
 async fn get_categories(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<ApiResult<Vec<CategoryWithCounts>>> {
     match Category::find_root_categories(&mut db).await {
         Ok(categories) => Json(Ok(ApiResponse {
@@ -19,7 +20,7 @@ async fn get_categories(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Js
     }
 }
 
-#[get("/categories/<id>", rank = 1)]
+#[get("/categories/<id>")]
 async fn get_category(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<CategoryWithCounts>> {
     match Category::find_by_id_with_counts(&mut db, id).await {
         Ok(Some(category)) => Json(Ok(ApiResponse {
@@ -37,7 +38,7 @@ async fn get_category(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32
     }
 }
 
-#[get("/categories/<id>/subcategories", rank = 1)]
+#[get("/categories/<id>/subcategories")]
 async fn get_subcategories(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<Vec<CategoryWithCounts>>> {
     match Category::find_subcategories(&mut db, id).await {
         Ok(categories) => Json(Ok(ApiResponse {
@@ -51,7 +52,7 @@ async fn get_subcategories(mut db: Connection<UniversalPathDb>, _key: ApiKey, id
     }
 }
 
-#[get("/categories/tree", rank = 1)]
+#[get("/categories/tree")]
 async fn get_category_tree(mut db: Connection<UniversalPathDb>, _key: ApiKey) -> Json<ApiResult<Vec<CategoryTreeItem>>> {
     match Category::build_tree(&mut db, None).await {
         Ok(tree) => Json(Ok(ApiResponse {
@@ -65,7 +66,7 @@ async fn get_category_tree(mut db: Connection<UniversalPathDb>, _key: ApiKey) ->
     }
 }
 
-#[get("/categories/<id>/path", rank = 1)]
+#[get("/categories/<id>/path")]
 async fn get_category_path(mut db: Connection<UniversalPathDb>, _key: ApiKey, id: u32) -> Json<ApiResult<Vec<Category>>> {
     match Category::build_category_path(&mut db, id).await {
         Ok(path) => Json(Ok(ApiResponse {
@@ -79,7 +80,8 @@ async fn get_category_path(mut db: Connection<UniversalPathDb>, _key: ApiKey, id
     }
 }
 
-#[post("/categories", format = "json", data = "<category>", rank = 1)]
+// POST routes
+#[post("/categories", format = "json", data = "<category>")]
 async fn create_category(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -97,7 +99,8 @@ async fn create_category(
     }
 }
 
-#[put("/categories/<id>", format = "json", data = "<category>", rank = 1)]
+// PUT routes
+#[put("/categories/<id>", format = "json", data = "<category>")]
 async fn update_category(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -128,7 +131,8 @@ async fn update_category(
     }
 }
 
-#[delete("/categories/<id>", rank = 1)]
+// DELETE routes
+#[delete("/categories/<id>")]
 async fn delete_category(
     mut db: Connection<UniversalPathDb>, 
     _admin: AdminUser,
@@ -155,15 +159,41 @@ async fn delete_category(
     }
 }
 
-pub fn routes() -> Vec<Route> {
+// Export routes separated by HTTP method
+pub fn get_routes() -> Vec<Route> {
     routes![
         get_categories, 
         get_category, 
         get_subcategories,
         get_category_tree,
-        get_category_path,
-        create_category,
-        update_category,
+        get_category_path
+    ]
+}
+
+pub fn post_routes() -> Vec<Route> {
+    routes![
+        create_category
+    ]
+}
+
+pub fn put_routes() -> Vec<Route> {
+    routes![
+        update_category
+    ]
+}
+
+pub fn delete_routes() -> Vec<Route> {
+    routes![
         delete_category
     ]
+}
+
+// Original function - now just combines all the separate routes
+pub fn routes() -> Vec<Route> {
+    let mut routes = Vec::new();
+    routes.extend(get_routes());
+    routes.extend(post_routes());
+    routes.extend(put_routes());
+    routes.extend(delete_routes());
+    routes
 }
